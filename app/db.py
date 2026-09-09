@@ -27,14 +27,11 @@ def get_pool() -> asyncpg.Pool:
 
 
 async def get_db():
-    """FastAPI dependency: yields a connection from the pool."""
     async with get_pool().acquire() as conn:
         yield conn
 
 
 async def init_db() -> None:
-    """Runs schema.sql on startup. Each module appends its own
-    CREATE TABLE IF NOT EXISTS statements there as it's built."""
     schema_path = Path(__file__).parent / "schema.sql"
     sql = schema_path.read_text().strip()
     if not sql:
