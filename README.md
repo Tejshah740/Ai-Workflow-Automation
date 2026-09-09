@@ -18,28 +18,32 @@ An asynchronous workflow automation system built with FastAPI, PostgreSQL, Redis
 .
 ├── app/
 │   ├── __init__.py
-│   ├── config.py           # Application settings & environment parsing
-│   ├── db.py               # asyncpg database pool & lifecycle management
-│   ├── main.py             # FastAPI entrypoint, middleware, health endpoints
-│   ├── queue.py            # Redis Queue (RQ) configuration
-│   ├── schema.sql          # Database schema migrations & table definitions
+│   ├── config.py                 # Application settings & environment parsing
+│   ├── db.py                     # asyncpg database pool & lifecycle management
+│   ├── main.py                   # FastAPI entrypoint, middleware, health endpoints
+│   ├── queue.py                  # Redis Queue (RQ) configuration
+│   ├── schema.sql                # Database schema migrations & table definitions
 │   ├── models/
 │   │   ├── __init__.py
-│   │   └── auth.py         # Pydantic schemas & enums (Role, UserCreate, UserOut, Token)
+│   │   ├── auth.py               # Pydantic schemas & enums for Auth (Role, UserCreate, Token)
+│   │   └── submissions.py        # Pydantic schemas & enums for Submissions (Channel, Status)
 │   ├── routers/
 │   │   ├── __init__.py
-│   │   └── auth.py         # Auth endpoints (register, login, me, promote)
+│   │   ├── auth.py               # Auth endpoints (register, login, me, promote)
+│   │   └── submissions.py        # Submission endpoints (documents, requests, downloads)
 │   ├── services/
 │   │   ├── __init__.py
-│   │   └── auth_service.py # Database queries & user lifecycle operations
+│   │   ├── auth_service.py       # Database queries for users & roles
+│   │   └── submission_service.py # Database queries for submissions & audit logging
 │   └── utils/
 │       ├── __init__.py
-│       ├── deps.py         # Auth dependencies & RBAC (get_current_user, require_roles)
-│       └── security.py     # Password hashing (bcrypt) & JWT helpers
-├── docker-compose.yml       # Docker Compose definition (PostgreSQL, Redis, API, Worker)
-├── Dockerfile              # Container specification for API and Worker
-├── requirements.txt        # Python package dependencies
-├── .env.example            # Template for environment variables
+│       ├── deps.py               # Auth dependencies & RBAC (get_current_user, require_roles)
+│       ├── file_storage.py       # Safe file upload streaming, validation, storage
+│       └── security.py           # Password hashing (bcrypt) & JWT helpers
+├── docker-compose.yml             # Docker Compose definition (PostgreSQL, Redis, API, Worker)
+├── Dockerfile                    # Container specification for API and Worker
+├── requirements.txt              # Python package dependencies
+├── .env.example                  # Template for environment variables
 └── README.md
 ```
 
@@ -68,9 +72,11 @@ Configure your environment settings in `.env`:
 | `DATABASE_URL` | PostgreSQL connection string | `postgresql://workflow_user:workflow_pass@localhost:5432/workflow_db` |
 | `REDIS_URL` | Redis connection URL | `redis://localhost:6379/0` |
 | `CORS_ORIGINS` | JSON list of allowed CORS origins | `["http://localhost:5173", "http://localhost:3000"]` |
-| `JWT_SECRET_KEY` | Secret key for signing JWT tokens | `"supersecretjwtkeychangeinproduction1234567890"` |
+| `JWT_SECRET_KEY` | Secret key for signing JWT tokens | Required |
 | `JWT_ALGORITHM` | JWT signing algorithm | `"HS256"` |
-| `JWT_EXPIRE_MINUTES`| Access token expiration in minutes | `60` |
+| `JWT_EXPIRE_MINUTES`| Access token expiration in minutes | `1440` |
+| `UPLOAD_DIR` | Storage directory for uploaded documents | `"/app/uploads"` (Docker) or `"./uploads"` (Local) |
+| `MAX_UPLOAD_SIZE_BYTES` | Maximum allowed upload size (bytes) | `10485760` (10 MB) |
 
 ### 3. Running with Docker Compose (Recommended)
 
@@ -108,9 +114,9 @@ Interactive API docs are available at [http://localhost:8000/docs](http://localh
    rq worker --url redis://localhost:6379
    ```
 
-## Authentication Endpoints
+## API Endpoints
 
-The following authentication routes are exposed under `/api/auth`:
+### Authentication (`/api/auth`)
 
 | Method | Endpoint | Description | Auth Required |
 |---|---|---|---|
@@ -119,7 +125,18 @@ The following authentication routes are exposed under `/api/auth`:
 | `GET` | `/api/auth/me` | Fetch the authenticated user's profile | Bearer Token |
 | `PUT` | `/api/auth/promote/{user_id}` | Promote/change user role (`admin`, `reviewer`, `approver`, `submitter`) | Admin only |
 
-## Health Check
+### Submissions & Intake (`/api/submissions`)
+
+| Method | Endpoint | Description | Auth Required |
+|---|---|---|---|
+| `POST` | `/api/submissions/documents` | Upload a document file (PDF, PNG, JPG, TIFF up to 10MB) | Bearer Token |
+| `POST` | `/api/submissions/requests` | Submit structured JSON form/request payload | Bearer Token |
+| `GET` | `/api/submissions` | List submissions (users see own; admins see all; supports filter by status/channel) | Bearer Token |
+| `GET` | `/api/submissions/{submission_id}` | Get submission details by ID | Bearer Token (Owner or Admin) |
+| `GET` | `/api/submissions/{submission_id}/download` | Download uploaded document file | Bearer Token (Owner or Admin) |
+| `DELETE` | `/api/submissions/{submission_id}` | Delete submission (only allowed if status is `submitted`) | Bearer Token (Owner or Admin) |
+
+### Health Check
 
 Verify the API status:
 

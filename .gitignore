@@ -87,3 +87,7 @@ Icon
 *.sqlite
 *.sqlite3
 dump.rdb
+
+# Uploaded documents / storage
+uploads/
+

@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import asyncpg
@@ -7,9 +8,19 @@ from app.config import settings
 _pool: asyncpg.Pool | None = None
 
 
+async def _init_connection(conn: asyncpg.Connection) -> None:
+    for pg_type in ("json", "jsonb"):
+        await conn.set_type_codec(
+            pg_type,
+            encoder=json.dumps,
+            decoder=json.loads,
+            schema="pg_catalog",
+        )
+
+
 async def connect_db() -> asyncpg.Pool:
     global _pool
-    _pool = await asyncpg.create_pool(settings.database_url)
+    _pool = await asyncpg.create_pool(settings.database_url, init=_init_connection)
     return _pool
 
 
