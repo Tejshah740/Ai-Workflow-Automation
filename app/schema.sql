@@ -1,0 +1,2 @@
+-- AI Workflow Automation Database Schema
+-- Add table definitions below
