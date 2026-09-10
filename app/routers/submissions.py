@@ -185,3 +185,23 @@ async def get_extraction(
     if extraction is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No extraction yet")
     return dict(extraction)
+
+
+@router.get("/{submission_id}/validation")
+async def get_validation(
+    submission_id: int,
+    conn: asyncpg.Connection = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    submission = await get_submission(conn, submission_id)
+    if submission is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Submission not found")
+    _ensure_owner_or_admin(submission, user)
+
+    validation = await conn.fetchrow(
+        "SELECT * FROM validations WHERE submission_id = $1 ORDER BY id DESC LIMIT 1",
+        submission_id,
+    )
+    if validation is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No validation yet")
+    return dict(validation)

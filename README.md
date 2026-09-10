@@ -10,6 +10,7 @@ An asynchronous workflow automation system built with FastAPI, PostgreSQL, Redis
 - **Task Queue / Cache**: Redis & [RQ](https://python-rq.org/)
 - **OCR & Document Processing**: Tesseract OCR, Poppler (`pdf2image`, `pytesseract`, `Pillow`)
 - **Authentication**: OAuth2 Password Flow with JWT (`python-jose`, `bcrypt`)
+- **Validation & Anomaly Detection**: Schema checks, `python-dateutil`, duplicate checking & outlier scoring
 - **Settings Management**: [pydantic-settings](https://docs.pydantic.dev/latest/concepts/pydantic_settings/)
 - **Containerization**: Docker & Docker Compose
 
@@ -30,22 +31,26 @@ An asynchronous workflow automation system built with FastAPI, PostgreSQL, Redis
 │   ├── models/
 │   │   ├── __init__.py
 │   │   ├── auth.py               # Pydantic schemas & enums for Auth (Role, UserCreate, Token)
-│   │   └── submissions.py        # Pydantic schemas & enums for Submissions (Channel, Status)
+│   │   ├── submissions.py        # Pydantic schemas & enums for Submissions (Channel, Status)
+│   │   └── validation.py         # Pydantic schemas for ValidationResult and ValidationIssue
 │   ├── routers/
 │   │   ├── __init__.py
 │   │   ├── auth.py               # Auth endpoints (register, login, me, promote)
-│   │   └── submissions.py        # Submission endpoints (intake, downloads, extractions)
+│   │   └── submissions.py        # Submission endpoints (intake, downloads, extractions, validations)
 │   ├── services/
 │   │   ├── __init__.py
+│   │   ├── anomaly_service.py    # Statistical outlier and 24h duplicate submission detection
 │   │   ├── auth_service.py       # Database queries for users & roles
 │   │   ├── classification_service.py # Keyword-based document type classifier
 │   │   ├── extraction_service.py # Regex field extractor (amount, date, invoice number)
 │   │   ├── ocr_service.py        # OCR runner for images and PDFs with confidence scores
-│   │   └── submission_service.py # Database queries for submissions & audit logging
+│   │   ├── submission_service.py # Database queries for submissions & audit logging
+│   │   └── validation_service.py # Business rule validation per submission type
 │   └── utils/
 │       ├── __init__.py
 │       ├── deps.py               # Auth dependencies & RBAC (get_current_user, require_roles)
 │       ├── file_storage.py       # Safe file upload streaming, validation, storage
+│       ├── parsing.py            # Robust amount and date parsing helpers
 │       └── security.py           # Password hashing (bcrypt) & JWT helpers
 ├── docker-compose.yml             # Docker Compose definition (PostgreSQL, Redis, API, Worker)
 ├── Dockerfile                    # Container specification with Tesseract & Poppler
@@ -134,8 +139,16 @@ When a document or structured request is submitted:
    - **OCR Service**: Runs Tesseract OCR on images or converts PDF pages via Poppler, calculating character-level confidence.
    - **Classification Service**: Categorizes the document (e.g. `invoice`, `receipt`, `purchase_order`, `contract`) with a confidence score.
    - **Extraction Service**: Extracts key fields (amount, invoice date, invoice number).
-   - **Confidence Scoring & Routing**: Computes overall confidence. If `overall_confidence >= CONFIDENCE_THRESHOLD` (default 0.6), the submission transitions to `pending_approval`; otherwise, it transitions to `needs_review`.
-4. Results are stored in the `extractions` table and linked to the submission.
+   - Extractions are saved to the `extractions` table.
+4. **Validation & Anomaly Detection**:
+   - **Schema Validation**: Validates required fields, date formats, future date checks, positive amounts, and date order (e.g., leave start before end).
+   - **Duplicate Detection**: Identifies submissions by the same user with matching type and amount within 24 hours (flags as warning).
+   - **Outlier Detection**: Checks if the amount exceeds 3x the recent historical average for that submission type (flags as warning).
+   - Validation results are saved to the `validations` table.
+5. **Confidence Scoring & Routing**:
+   - Computes overall confidence from OCR and classification scores.
+   - If `overall_confidence >= CONFIDENCE_THRESHOLD` AND `validation_result.is_valid` is `True`, the submission transitions to `pending_approval`.
+   - If confidence is below threshold OR validation contains errors, it transitions to `needs_review`.
 
 ## API Endpoints
 
@@ -158,6 +171,7 @@ When a document or structured request is submitted:
 | `GET` | `/api/submissions/{submission_id}` | Get submission details by ID | Bearer Token (Owner or Admin) |
 | `GET` | `/api/submissions/{submission_id}/download` | Download uploaded document file | Bearer Token (Owner or Admin) |
 | `GET` | `/api/submissions/{submission_id}/extraction` | Get latest AI extraction & confidence results for a submission | Bearer Token (Owner or Admin) |
+| `GET` | `/api/submissions/{submission_id}/validation` | Get latest validation & anomaly detection results for a submission | Bearer Token (Owner or Admin) |
 | `DELETE` | `/api/submissions/{submission_id}` | Delete submission (only allowed if status is `submitted`) | Bearer Token (Owner or Admin) |
 
 ### Health Check

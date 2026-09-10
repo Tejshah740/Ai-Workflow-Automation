@@ -52,3 +52,12 @@ CREATE TABLE IF NOT EXISTS extractions (
     extracted_fields JSONB,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Module 5: validation + anomaly detection
+CREATE TABLE IF NOT EXISTS validations (
+    id SERIAL PRIMARY KEY,
+    submission_id INTEGER NOT NULL REFERENCES submissions(id) ON DELETE CASCADE,
+    is_valid BOOLEAN NOT NULL,
+    issues JSONB NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
