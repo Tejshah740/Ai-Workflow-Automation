@@ -8,7 +8,7 @@ from app.config import settings
 _pool: asyncpg.Pool | None = None
 
 
-async def _init_connection(conn: asyncpg.Connection) -> None:
+async def init_connection(conn: asyncpg.Connection) -> None:
     for pg_type in ("json", "jsonb"):
         await conn.set_type_codec(
             pg_type,
@@ -20,7 +20,7 @@ async def _init_connection(conn: asyncpg.Connection) -> None:
 
 async def connect_db() -> asyncpg.Pool:
     global _pool
-    _pool = await asyncpg.create_pool(settings.database_url, init=_init_connection)
+    _pool = await asyncpg.create_pool(settings.database_url, init=init_connection)
     return _pool
 
 
@@ -38,11 +38,14 @@ def get_pool() -> asyncpg.Pool:
 
 
 async def get_db():
+    """FastAPI dependency: yields a connection from the pool."""
     async with get_pool().acquire() as conn:
         yield conn
 
 
 async def init_db() -> None:
+    """Runs schema.sql on startup. Each module appends its own
+    CREATE TABLE IF NOT EXISTS statements there as it's built."""
     schema_path = Path(__file__).parent / "schema.sql"
     sql = schema_path.read_text().strip()
     if not sql:

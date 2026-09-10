@@ -40,3 +40,15 @@ CREATE TABLE IF NOT EXISTS audit_log (
     details JSONB,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Module 4: AI extraction + confidence scoring
+CREATE TABLE IF NOT EXISTS extractions (
+    id SERIAL PRIMARY KEY,
+    submission_id INTEGER NOT NULL REFERENCES submissions(id) ON DELETE CASCADE,
+    raw_text TEXT,
+    ocr_confidence REAL,
+    predicted_type TEXT,
+    classification_confidence REAL,
+    extracted_fields JSONB,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);

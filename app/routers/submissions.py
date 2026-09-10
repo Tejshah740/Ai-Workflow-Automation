@@ -3,10 +3,13 @@ from pathlib import Path
 import asyncpg
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
+from rq import Retry
 
 from app.config import settings
 from app.db import get_db
+from app.jobs.processing import handle_processing_failure, process_submission_job
 from app.models.submissions import Channel, RequestSubmissionCreate, SubmissionOut, SubmissionStatus
+from app.queue import task_queue
 from app.services.submission_service import (
     create_document_submission,
     create_request_submission,
@@ -19,6 +22,15 @@ from app.utils.deps import get_current_user
 from app.utils.file_storage import UploadValidationError, save_upload
 
 router = APIRouter(prefix="/api/submissions", tags=["submissions"])
+
+
+def _enqueue_processing(submission_id: int) -> None:
+    task_queue.enqueue(
+        process_submission_job,
+        submission_id,
+        retry=Retry(max=3, interval=[10, 30, 60]),
+        on_failure=handle_processing_failure,
+    )
 
 
 def _ensure_owner_or_admin(submission, user) -> None:
@@ -50,6 +62,7 @@ async def upload_document(
         file_size_bytes=size,
     )
     await log_audit_event(conn, submission["id"], user["id"], "submission_created", {"channel": "document"})
+    _enqueue_processing(submission["id"])
     return dict(submission)
 
 
@@ -66,6 +79,7 @@ async def submit_request(
         fields=payload.fields,
     )
     await log_audit_event(conn, submission["id"], user["id"], "submission_created", {"channel": "request"})
+    _enqueue_processing(submission["id"])
     return dict(submission)
 
 
@@ -151,3 +165,23 @@ async def delete_one_submission(
         conn, submission_id, user["id"], "submission_deleted", {"submission_id": submission_id}
     )
     await delete_submission_row(conn, submission_id)
+
+
+@router.get("/{submission_id}/extraction")
+async def get_extraction(
+    submission_id: int,
+    conn: asyncpg.Connection = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    submission = await get_submission(conn, submission_id)
+    if submission is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Submission not found")
+    _ensure_owner_or_admin(submission, user)
+
+    extraction = await conn.fetchrow(
+        "SELECT * FROM extractions WHERE submission_id = $1 ORDER BY id DESC LIMIT 1",
+        submission_id,
+    )
+    if extraction is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No extraction yet")
+    return dict(extraction)

@@ -8,6 +8,7 @@ An asynchronous workflow automation system built with FastAPI, PostgreSQL, Redis
 - **ASGI Server**: [Uvicorn](https://www.uvicorn.org/)
 - **Database**: PostgreSQL with [asyncpg](https://github.com/MagicStack/asyncpg)
 - **Task Queue / Cache**: Redis & [RQ](https://python-rq.org/)
+- **OCR & Document Processing**: Tesseract OCR, Poppler (`pdf2image`, `pytesseract`, `Pillow`)
 - **Authentication**: OAuth2 Password Flow with JWT (`python-jose`, `bcrypt`)
 - **Settings Management**: [pydantic-settings](https://docs.pydantic.dev/latest/concepts/pydantic_settings/)
 - **Containerization**: Docker & Docker Compose
@@ -23,6 +24,9 @@ An asynchronous workflow automation system built with FastAPI, PostgreSQL, Redis
 │   ├── main.py                   # FastAPI entrypoint, middleware, health endpoints
 │   ├── queue.py                  # Redis Queue (RQ) configuration
 │   ├── schema.sql                # Database schema migrations & table definitions
+│   ├── jobs/
+│   │   ├── __init__.py
+│   │   └── processing.py         # Asynchronous worker jobs for AI processing & status routing
 │   ├── models/
 │   │   ├── __init__.py
 │   │   ├── auth.py               # Pydantic schemas & enums for Auth (Role, UserCreate, Token)
@@ -30,10 +34,13 @@ An asynchronous workflow automation system built with FastAPI, PostgreSQL, Redis
 │   ├── routers/
 │   │   ├── __init__.py
 │   │   ├── auth.py               # Auth endpoints (register, login, me, promote)
-│   │   └── submissions.py        # Submission endpoints (documents, requests, downloads)
+│   │   └── submissions.py        # Submission endpoints (intake, downloads, extractions)
 │   ├── services/
 │   │   ├── __init__.py
 │   │   ├── auth_service.py       # Database queries for users & roles
+│   │   ├── classification_service.py # Keyword-based document type classifier
+│   │   ├── extraction_service.py # Regex field extractor (amount, date, invoice number)
+│   │   ├── ocr_service.py        # OCR runner for images and PDFs with confidence scores
 │   │   └── submission_service.py # Database queries for submissions & audit logging
 │   └── utils/
 │       ├── __init__.py
@@ -41,7 +48,7 @@ An asynchronous workflow automation system built with FastAPI, PostgreSQL, Redis
 │       ├── file_storage.py       # Safe file upload streaming, validation, storage
 │       └── security.py           # Password hashing (bcrypt) & JWT helpers
 ├── docker-compose.yml             # Docker Compose definition (PostgreSQL, Redis, API, Worker)
-├── Dockerfile                    # Container specification for API and Worker
+├── Dockerfile                    # Container specification with Tesseract & Poppler
 ├── requirements.txt              # Python package dependencies
 ├── .env.example                  # Template for environment variables
 └── README.md
@@ -54,6 +61,9 @@ An asynchronous workflow automation system built with FastAPI, PostgreSQL, Redis
 - Python 3.12+ (or 3.13)
 - PostgreSQL (or Docker)
 - Redis (or Docker)
+- **Local OCR (optional if running locally outside Docker)**:
+  - macOS: `brew install tesseract poppler`
+  - Linux: `apt-get install tesseract-ocr poppler-utils`
 
 ### 2. Environment Configuration
 
@@ -77,6 +87,7 @@ Configure your environment settings in `.env`:
 | `JWT_EXPIRE_MINUTES`| Access token expiration in minutes | `1440` |
 | `UPLOAD_DIR` | Storage directory for uploaded documents | `"/app/uploads"` (Docker) or `"./uploads"` (Local) |
 | `MAX_UPLOAD_SIZE_BYTES` | Maximum allowed upload size (bytes) | `10485760` (10 MB) |
+| `CONFIDENCE_THRESHOLD` | Threshold for routing to `pending_approval` vs `needs_review` | `0.6` |
 
 ### 3. Running with Docker Compose (Recommended)
 
@@ -114,6 +125,18 @@ Interactive API docs are available at [http://localhost:8000/docs](http://localh
    rq worker --url redis://localhost:6379
    ```
 
+## AI Processing Pipeline
+
+When a document or structured request is submitted:
+1. It is stored in the database with status `submitted` and an audit event is logged.
+2. A background job (`process_submission_job`) is enqueued into Redis Queue (RQ) with automatic retries.
+3. For documents:
+   - **OCR Service**: Runs Tesseract OCR on images or converts PDF pages via Poppler, calculating character-level confidence.
+   - **Classification Service**: Categorizes the document (e.g. `invoice`, `receipt`, `purchase_order`, `contract`) with a confidence score.
+   - **Extraction Service**: Extracts key fields (amount, invoice date, invoice number).
+   - **Confidence Scoring & Routing**: Computes overall confidence. If `overall_confidence >= CONFIDENCE_THRESHOLD` (default 0.6), the submission transitions to `pending_approval`; otherwise, it transitions to `needs_review`.
+4. Results are stored in the `extractions` table and linked to the submission.
+
 ## API Endpoints
 
 ### Authentication (`/api/auth`)
@@ -129,11 +152,12 @@ Interactive API docs are available at [http://localhost:8000/docs](http://localh
 
 | Method | Endpoint | Description | Auth Required |
 |---|---|---|---|
-| `POST` | `/api/submissions/documents` | Upload a document file (PDF, PNG, JPG, TIFF up to 10MB) | Bearer Token |
-| `POST` | `/api/submissions/requests` | Submit structured JSON form/request payload | Bearer Token |
+| `POST` | `/api/submissions/documents` | Upload a document file (PDF, PNG, JPG, TIFF up to 10MB) and enqueue AI processing | Bearer Token |
+| `POST` | `/api/submissions/requests` | Submit structured JSON form/request payload and enqueue processing | Bearer Token |
 | `GET` | `/api/submissions` | List submissions (users see own; admins see all; supports filter by status/channel) | Bearer Token |
 | `GET` | `/api/submissions/{submission_id}` | Get submission details by ID | Bearer Token (Owner or Admin) |
 | `GET` | `/api/submissions/{submission_id}/download` | Download uploaded document file | Bearer Token (Owner or Admin) |
+| `GET` | `/api/submissions/{submission_id}/extraction` | Get latest AI extraction & confidence results for a submission | Bearer Token (Owner or Admin) |
 | `DELETE` | `/api/submissions/{submission_id}` | Delete submission (only allowed if status is `submitted`) | Bearer Token (Owner or Admin) |
 
 ### Health Check
