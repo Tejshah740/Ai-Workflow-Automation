@@ -1,9 +1,10 @@
 # AI Workflow Automation
 
-An asynchronous workflow automation system built with FastAPI, PostgreSQL, Redis, and RQ (Redis Queue).
+An asynchronous workflow automation system built with FastAPI, PostgreSQL, Redis, RQ (Redis Queue), and a modern React + Vite frontend.
 
 ## Tech Stack
 
+### Backend
 - **Framework**: [FastAPI](https://fastapi.tiangolo.com/)
 - **ASGI Server**: [Uvicorn](https://www.uvicorn.org/)
 - **Database**: PostgreSQL with [asyncpg](https://github.com/MagicStack/asyncpg)
@@ -15,6 +16,13 @@ An asynchronous workflow automation system built with FastAPI, PostgreSQL, Redis
 - **Notifications & Email**: In-app notifications database, SMTP email integration, MailHog for testing
 - **Settings Management**: [pydantic-settings](https://docs.pydantic.dev/latest/concepts/pydantic_settings/)
 - **Containerization**: Docker & Docker Compose
+
+### Frontend
+- **Framework**: [React 19](https://react.dev/) + [Vite](https://vite.dev/)
+- **Routing**: [React Router 7](https://reactrouter.com/)
+- **Styling**: [TailwindCSS](https://tailwindcss.com/)
+- **Icons**: [Lucide React](https://lucide.dev/)
+- **HTTP Client**: [Axios](https://axios-http.com/) (with JWT interceptors & auth context)
 
 ## Project Structure
 
@@ -61,6 +69,18 @@ An asynchronous workflow automation system built with FastAPI, PostgreSQL, Redis
 │       ├── file_storage.py       # Safe file upload streaming, validation, storage
 │       ├── parsing.py            # Robust amount and date parsing helpers
 │       └── security.py           # Password hashing (bcrypt) & JWT helpers
+├── frontend/                     # React 19 + Vite + TailwindCSS client application
+│   ├── src/
+│   │   ├── api/                  # Axios instance with auth interceptors
+│   │   ├── components/           # ProtectedRoute, InputField, UI components
+│   │   ├── context/              # AuthContext (login, register, token handling)
+│   │   ├── pages/                # LoginPage, RegisterPage, DashboardPage
+│   │   ├── App.jsx               # Main router & routes
+│   │   ├── main.jsx              # App root & providers
+│   │   └── index.css             # Tailwind base & component styles
+│   ├── package.json
+│   ├── tailwind.config.js
+│   └── vite.config.js
 ├── docker-compose.yml             # Docker Compose definition (PostgreSQL, Redis, API, Worker, MailHog)
 ├── Dockerfile                    # Container specification with Tesseract & Poppler
 ├── requirements.txt              # Python package dependencies
@@ -73,6 +93,7 @@ An asynchronous workflow automation system built with FastAPI, PostgreSQL, Redis
 ### 1. Prerequisites
 
 - Python 3.12+ (or 3.13)
+- Node.js 18+ & npm
 - PostgreSQL (or Docker)
 - Redis (or Docker)
 - **Local OCR (optional if running locally outside Docker)**:
@@ -107,9 +128,9 @@ Configure your environment settings in `.env`:
 | `SMTP_FROM` | Sender email address | `"noreply@workflow.local"` |
 | `SMTP_USE_TLS` | Enable TLS for SMTP | `False` |
 
-### 3. Running with Docker Compose (Recommended)
+### 3. Running with Docker Compose (Backend Services)
 
-To start all services (PostgreSQL, Redis, API, RQ Worker, MailHog) at once:
+To start all backend services (PostgreSQL, Redis, API, RQ Worker, MailHog) at once:
 
 ```bash
 docker compose up --build
@@ -119,7 +140,7 @@ docker compose up --build
 - Interactive API docs are available at [http://localhost:8000/docs](http://localhost:8000/docs).
 - MailHog Web UI (for viewing captured test emails) is available at [http://localhost:8025](http://localhost:8025).
 
-### 4. Running Locally
+### 4. Running Backend Locally
 
 1. Create and activate a virtual environment:
    ```bash
@@ -143,6 +164,25 @@ docker compose up --build
    ```bash
    rq worker --url redis://localhost:6379
    ```
+
+### 5. Running Frontend Locally
+
+1. Navigate to the frontend directory:
+   ```bash
+   cd frontend
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Start the Vite dev server:
+   ```bash
+   npm run dev
+   ```
+
+The frontend application will be live at [http://localhost:5173](http://localhost:5173).
 
 ## Processing, Workflow & Notifications Pipeline
 
