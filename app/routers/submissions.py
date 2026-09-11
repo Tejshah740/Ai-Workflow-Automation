@@ -167,6 +167,24 @@ async def delete_one_submission(
     await delete_submission_row(conn, submission_id)
 
 
+@router.get("/{submission_id}/audit")
+async def get_audit_trail(
+    submission_id: int,
+    conn: asyncpg.Connection = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    submission = await get_submission(conn, submission_id)
+    if submission is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Submission not found")
+    if user["role"] not in ("admin", "reviewer", "approver") and submission["submitter_id"] != user["id"]:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Submission not found")
+
+    rows = await conn.fetch(
+        "SELECT * FROM audit_log WHERE submission_id = $1 ORDER BY created_at", submission_id
+    )
+    return [dict(r) for r in rows]
+
+
 @router.get("/{submission_id}/extraction")
 async def get_extraction(
     submission_id: int,

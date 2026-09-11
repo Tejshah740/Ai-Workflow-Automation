@@ -39,6 +39,7 @@ An asynchronous workflow automation system built with FastAPI, PostgreSQL, Redis
 │   ├── routers/
 │   │   ├── __init__.py
 │   │   ├── auth.py               # Auth endpoints (register, login, me, promote)
+│   │   ├── dashboard.py          # Metrics, reports, and analytics endpoints
 │   │   ├── notifications.py      # Notifications endpoints (list, mark read, mark all read)
 │   │   ├── submissions.py        # Submission endpoints (intake, downloads, extractions, validations)
 │   │   └── workflow.py           # Workflow engine (rules, queues, field corrections, approve/reject)
@@ -184,6 +185,7 @@ docker compose up --build
 | `GET` | `/api/submissions/{submission_id}/download` | Download uploaded document file | Bearer Token (Owner or Admin) |
 | `GET` | `/api/submissions/{submission_id}/extraction` | Get latest AI extraction & confidence results for a submission | Bearer Token (Owner or Admin) |
 | `GET` | `/api/submissions/{submission_id}/validation` | Get latest validation & anomaly detection results for a submission | Bearer Token (Owner or Admin) |
+| `GET` | `/api/submissions/{submission_id}/audit` | View complete chronological audit log trail for a submission | Bearer Token (Owner, Reviewer, Approver, Admin) |
 | `DELETE` | `/api/submissions/{submission_id}` | Delete submission (only allowed if status is `submitted`) | Bearer Token (Owner or Admin) |
 
 ### Workflow Engine (`/api/workflow`)
@@ -206,6 +208,16 @@ docker compose up --build
 | `GET` | `/api/notifications` | List notifications for authenticated user (supports `unread_only`, `limit`, `offset`) | Bearer Token |
 | `POST` | `/api/notifications/{notification_id}/read` | Mark specific notification as read | Bearer Token (Owner) |
 | `POST` | `/api/notifications/read-all` | Mark all user notifications as read | Bearer Token |
+
+### Dashboard & Analytics (`/api/dashboard` & `/api/reports`)
+
+| Method | Endpoint | Description | Auth Required |
+|---|---|---|---|
+| `GET` | `/api/dashboard/summary` | Global submission status counts with optional date filters (`since`, `until`) | Reviewer, Approver, Admin |
+| `GET` | `/api/dashboard/by-type` | Submission counts matrix grouped by submission type and status | Reviewer, Approver, Admin |
+| `GET` | `/api/reports/processing` | AI metrics: total processed, auto-pass count, review count, avg confidence & duration | Reviewer, Approver, Admin |
+| `GET` | `/api/reports/approvals` | Approval vs rejection metrics across levels and individual approvers | Reviewer, Approver, Admin |
+| `GET` | `/api/reports/errors` | Recent failure logs and error details from audit log | Reviewer, Approver, Admin |
 
 ### Health Check
 
