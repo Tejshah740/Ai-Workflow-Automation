@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.db import get_db
 from app.models.workflow import DecisionInput, FieldsUpdate, WorkflowRuleUpdate
+from app.services.notification_service import notify_role, notify_user
 from app.services.submission_service import get_submission, log_audit_event
 from app.services.validation_service import run_validation
 from app.services.workflow_service import create_approval_chain, get_current_level, record_decision
@@ -142,6 +143,15 @@ async def resolve_review(
         submission_id,
     )
     await create_approval_chain(conn, submission_id, submission["submission_type"])
+    current = await get_current_level(conn, submission_id)
+    if current:
+        await notify_role(
+            conn,
+            current["required_role"],
+            submission_id,
+            "pending_approval",
+            f"Submission #{submission_id} ({submission['submission_type']}) is awaiting your approval.",
+        )
     await log_audit_event(
         conn,
         submission_id,
@@ -181,8 +191,23 @@ async def approve_submission(
             "UPDATE submissions SET status = 'approved', updated_at = now() WHERE id = $1", submission_id
         )
         final_status = "approved"
+        await notify_user(
+            conn,
+            submission["submitter_id"],
+            submission_id,
+            "submission_approved",
+            f"Your submission #{submission_id} ({submission['submission_type']}) was approved.",
+        )
     else:
         final_status = "pending_approval"
+        await notify_role(
+            conn,
+            next_level["required_role"],
+            submission_id,
+            "pending_approval",
+            f"Submission #{submission_id} ({submission['submission_type']}) is awaiting your approval "
+            f"(level {next_level['level']}).",
+        )
 
     await log_audit_event(
         conn,
@@ -224,6 +249,14 @@ async def reject_submission(
 
     await conn.execute(
         "UPDATE submissions SET status = 'rejected', updated_at = now() WHERE id = $1", submission_id
+    )
+    await notify_user(
+        conn,
+        submission["submitter_id"],
+        submission_id,
+        "submission_rejected",
+        f"Your submission #{submission_id} ({submission['submission_type']}) was rejected."
+        + (f" Comment: {payload.comment}" if payload.comment else ""),
     )
     await log_audit_event(
         conn,

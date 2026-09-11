@@ -83,3 +83,14 @@ CREATE TABLE IF NOT EXISTS approvals (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (submission_id, level)
 );
+
+-- Module 7: notifications
+CREATE TABLE IF NOT EXISTS notifications (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    submission_id INTEGER REFERENCES submissions(id) ON DELETE SET NULL,
+    event TEXT NOT NULL,
+    message TEXT NOT NULL,
+    read_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);

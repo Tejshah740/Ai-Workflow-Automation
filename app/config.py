@@ -17,6 +17,14 @@ class Settings(BaseSettings):
 
     confidence_threshold: float = 0.6
 
+    # SMTP / Email Configuration
+    smtp_host: str | None = None
+    smtp_port: int = 1025
+    smtp_user: str | None = None
+    smtp_password: str | None = None
+    smtp_from: str = "noreply@workflow.local"
+    smtp_use_tls: bool = False
+
     # JSON array in .env if overridden, e.g. ["https://myapp.com"]
     cors_origins: list[str] = ["http://localhost:5173", "http://localhost:3000"]
 

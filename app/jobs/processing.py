@@ -8,8 +8,9 @@ from app.db import init_connection
 from app.services.classification_service import classify_text
 from app.services.extraction_service import extract_fields
 from app.services.ocr_service import run_ocr
+from app.services.notification_service import notify_role, notify_user
 from app.services.validation_service import run_validation
-from app.services.workflow_service import create_approval_chain
+from app.services.workflow_service import create_approval_chain, get_current_level
 
 # Bad input — retrying won't help, fail immediately instead of burning RQ's retry budget.
 PERMANENT_ERRORS = (FileNotFoundError,)
@@ -57,6 +58,23 @@ async def _process_submission(submission_id: int) -> None:
         )
         if next_status == "pending_approval":
             await create_approval_chain(conn, submission_id, submission["submission_type"])
+            current = await get_current_level(conn, submission_id)
+            await notify_role(
+                conn,
+                current["required_role"],
+                submission_id,
+                "pending_approval",
+                f"Submission #{submission_id} ({submission['submission_type']}) is awaiting your approval.",
+            )
+        else:
+            await notify_role(
+                conn,
+                "reviewer",
+                submission_id,
+                "needs_review",
+                f"Submission #{submission_id} ({submission['submission_type']}) needs review "
+                f"(confidence {overall_confidence:.2f}).",
+            )
         await conn.execute(
             "INSERT INTO audit_log (submission_id, event, details) VALUES ($1, $2, $3::jsonb)",
             submission_id,
@@ -106,6 +124,7 @@ async def _process_document(conn: asyncpg.Connection, submission) -> float:
 
 
 async def _fail_permanently(conn: asyncpg.Connection, submission_id: int, error: str) -> None:
+    submission = await conn.fetchrow("SELECT submitter_id FROM submissions WHERE id = $1", submission_id)
     await conn.execute(
         "UPDATE submissions SET status = 'failed', updated_at = now() WHERE id = $1",
         submission_id,
@@ -115,6 +134,15 @@ async def _fail_permanently(conn: asyncpg.Connection, submission_id: int, error:
         submission_id,
         "ai_processing_failed",
         {"error": error, "retried": False},
+    )
+    if submission:
+        await notify_user(
+            conn, submission["submitter_id"], submission_id, "submission_failed",
+            f"Processing failed for submission #{submission_id}: {error}",
+        )
+    await notify_role(
+        conn, "admin", submission_id, "submission_failed",
+        f"Submission #{submission_id} failed processing (no retry — permanent error): {error}",
     )
 
 
@@ -132,6 +160,7 @@ async def _mark_failed_after_retries(submission_id: int, error: str) -> None:
     conn = await asyncpg.connect(settings.database_url)
     await init_connection(conn)
     try:
+        submission = await conn.fetchrow("SELECT submitter_id FROM submissions WHERE id = $1", submission_id)
         await conn.execute(
             "UPDATE submissions SET status = 'failed', updated_at = now() WHERE id = $1",
             submission_id,
@@ -141,6 +170,15 @@ async def _mark_failed_after_retries(submission_id: int, error: str) -> None:
             submission_id,
             "ai_processing_failed",
             {"error": error, "retried": True},
+        )
+        if submission:
+            await notify_user(
+                conn, submission["submitter_id"], submission_id, "submission_failed",
+                f"Processing failed for submission #{submission_id} after retries: {error}",
+            )
+        await notify_role(
+            conn, "admin", submission_id, "submission_failed",
+            f"Submission #{submission_id} failed processing after exhausting retries: {error}",
         )
     finally:
         await conn.close()
