@@ -9,6 +9,7 @@ from app.services.classification_service import classify_text
 from app.services.extraction_service import extract_fields
 from app.services.ocr_service import run_ocr
 from app.services.validation_service import run_validation
+from app.services.workflow_service import create_approval_chain
 
 # Bad input — retrying won't help, fail immediately instead of burning RQ's retry budget.
 PERMANENT_ERRORS = (FileNotFoundError,)
@@ -54,6 +55,8 @@ async def _process_submission(submission_id: int) -> None:
             next_status,
             submission_id,
         )
+        if next_status == "pending_approval":
+            await create_approval_chain(conn, submission_id, submission["submission_type"])
         await conn.execute(
             "INSERT INTO audit_log (submission_id, event, details) VALUES ($1, $2, $3::jsonb)",
             submission_id,

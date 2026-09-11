@@ -61,3 +61,25 @@ CREATE TABLE IF NOT EXISTS validations (
     issues JSONB NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Module 6: workflow engine
+CREATE TABLE IF NOT EXISTS workflow_rules (
+    id SERIAL PRIMARY KEY,
+    submission_type TEXT UNIQUE NOT NULL,
+    levels JSONB NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS approvals (
+    id SERIAL PRIMARY KEY,
+    submission_id INTEGER NOT NULL REFERENCES submissions(id) ON DELETE CASCADE,
+    level INTEGER NOT NULL,
+    required_role TEXT NOT NULL,
+    decision TEXT CHECK (decision IN ('approved', 'rejected')),
+    decided_by INTEGER REFERENCES users(id),
+    comment TEXT,
+    decided_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (submission_id, level)
+);

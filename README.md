@@ -11,6 +11,7 @@ An asynchronous workflow automation system built with FastAPI, PostgreSQL, Redis
 - **OCR & Document Processing**: Tesseract OCR, Poppler (`pdf2image`, `pytesseract`, `Pillow`)
 - **Authentication**: OAuth2 Password Flow with JWT (`python-jose`, `bcrypt`)
 - **Validation & Anomaly Detection**: Schema checks, `python-dateutil`, duplicate checking & outlier scoring
+- **Workflow & Routing**: Multi-level dynamic approval chains, role-based review queues, audit logs
 - **Settings Management**: [pydantic-settings](https://docs.pydantic.dev/latest/concepts/pydantic_settings/)
 - **Containerization**: Docker & Docker Compose
 
@@ -32,11 +33,13 @@ An asynchronous workflow automation system built with FastAPI, PostgreSQL, Redis
 │   │   ├── __init__.py
 │   │   ├── auth.py               # Pydantic schemas & enums for Auth (Role, UserCreate, Token)
 │   │   ├── submissions.py        # Pydantic schemas & enums for Submissions (Channel, Status)
-│   │   └── validation.py         # Pydantic schemas for ValidationResult and ValidationIssue
+│   │   ├── validation.py         # Pydantic schemas for ValidationResult and ValidationIssue
+│   │   └── workflow.py           # Pydantic schemas for workflow rules, field updates, decisions
 │   ├── routers/
 │   │   ├── __init__.py
 │   │   ├── auth.py               # Auth endpoints (register, login, me, promote)
-│   │   └── submissions.py        # Submission endpoints (intake, downloads, extractions, validations)
+│   │   ├── submissions.py        # Submission endpoints (intake, downloads, extractions, validations)
+│   │   └── workflow.py           # Workflow engine (rules, queues, field corrections, approve/reject)
 │   ├── services/
 │   │   ├── __init__.py
 │   │   ├── anomaly_service.py    # Statistical outlier and 24h duplicate submission detection
@@ -45,7 +48,8 @@ An asynchronous workflow automation system built with FastAPI, PostgreSQL, Redis
 │   │   ├── extraction_service.py # Regex field extractor (amount, date, invoice number)
 │   │   ├── ocr_service.py        # OCR runner for images and PDFs with confidence scores
 │   │   ├── submission_service.py # Database queries for submissions & audit logging
-│   │   └── validation_service.py # Business rule validation per submission type
+│   │   ├── validation_service.py # Business rule validation per submission type
+│   │   └── workflow_service.py   # Multi-level approval chains and decision tracking
 │   └── utils/
 │       ├── __init__.py
 │       ├── deps.py               # Auth dependencies & RBAC (get_current_user, require_roles)
@@ -130,25 +134,23 @@ Interactive API docs are available at [http://localhost:8000/docs](http://localh
    rq worker --url redis://localhost:6379
    ```
 
-## AI Processing Pipeline
+## Processing & Workflow Pipeline
 
-When a document or structured request is submitted:
-1. It is stored in the database with status `submitted` and an audit event is logged.
-2. A background job (`process_submission_job`) is enqueued into Redis Queue (RQ) with automatic retries.
-3. For documents:
-   - **OCR Service**: Runs Tesseract OCR on images or converts PDF pages via Poppler, calculating character-level confidence.
-   - **Classification Service**: Categorizes the document (e.g. `invoice`, `receipt`, `purchase_order`, `contract`) with a confidence score.
-   - **Extraction Service**: Extracts key fields (amount, invoice date, invoice number).
-   - Extractions are saved to the `extractions` table.
-4. **Validation & Anomaly Detection**:
-   - **Schema Validation**: Validates required fields, date formats, future date checks, positive amounts, and date order (e.g., leave start before end).
-   - **Duplicate Detection**: Identifies submissions by the same user with matching type and amount within 24 hours (flags as warning).
-   - **Outlier Detection**: Checks if the amount exceeds 3x the recent historical average for that submission type (flags as warning).
-   - Validation results are saved to the `validations` table.
-5. **Confidence Scoring & Routing**:
-   - Computes overall confidence from OCR and classification scores.
-   - If `overall_confidence >= CONFIDENCE_THRESHOLD` AND `validation_result.is_valid` is `True`, the submission transitions to `pending_approval`.
-   - If confidence is below threshold OR validation contains errors, it transitions to `needs_review`.
+1. **Intake**: A document or request is submitted with status `submitted`.
+2. **AI Processing**: An RQ worker asynchronously executes OCR, classification, and metadata extraction.
+3. **Validation & Anomaly Detection**: Validates schema rules, checks for 24h duplicates, and flags statistical outliers.
+4. **Initial Routing**:
+   - High confidence (`>= 0.6`) + valid fields: moves to `pending_approval` and automatically generates the multi-level approval chain.
+   - Low confidence (`< 0.6`) OR validation issues: moves to `needs_review`.
+5. **Human Review**:
+   - Reviewers view the `needs_review` queue via `GET /api/workflow/queue`.
+   - Reviewers/admins can inspect and patch extracted or form fields (`PUT /api/workflow/{submission_id}/fields`).
+   - Resolving review (`POST /api/workflow/{submission_id}/resolve`) re-runs validation and transitions the submission to `pending_approval` with an approval chain.
+6. **Multi-Level Approval**:
+   - Approvers view their actionable queue via `GET /api/workflow/queue`.
+   - Each level is approved in sequential order (`POST /api/workflow/{submission_id}/approve`).
+   - Once all levels approve, the submission reaches `approved`.
+   - Any approver or reviewer can reject (`POST /api/workflow/{submission_id}/reject`) with an explanatory comment.
 
 ## API Endpoints
 
@@ -173,6 +175,19 @@ When a document or structured request is submitted:
 | `GET` | `/api/submissions/{submission_id}/extraction` | Get latest AI extraction & confidence results for a submission | Bearer Token (Owner or Admin) |
 | `GET` | `/api/submissions/{submission_id}/validation` | Get latest validation & anomaly detection results for a submission | Bearer Token (Owner or Admin) |
 | `DELETE` | `/api/submissions/{submission_id}` | Delete submission (only allowed if status is `submitted`) | Bearer Token (Owner or Admin) |
+
+### Workflow Engine (`/api/workflow`)
+
+| Method | Endpoint | Description | Auth Required |
+|---|---|---|---|
+| `GET` | `/api/workflow/rules` | List configured workflow approval rules by submission type | Bearer Token |
+| `PUT` | `/api/workflow/rules/{submission_type}` | Upsert approval levels (e.g. `["reviewer", "approver"]`) | Admin only |
+| `GET` | `/api/workflow/queue` | View actionable queue items (`needs_review` and `pending_approval`) | Bearer Token |
+| `GET` | `/api/workflow/{submission_id}` | View submission status and all sequential approval levels | Bearer Token (Owner, Reviewer, Approver, Admin) |
+| `PUT` | `/api/workflow/{submission_id}/fields` | Correct extracted or submitted fields while in `needs_review` | Reviewer, Admin |
+| `POST` | `/api/workflow/{submission_id}/resolve` | Re-run validation and escalate from `needs_review` to `pending_approval` | Reviewer, Admin |
+| `POST` | `/api/workflow/{submission_id}/approve` | Approve current level in the approval chain | Required Role, Admin |
+| `POST` | `/api/workflow/{submission_id}/reject` | Reject submission with optional comment | Reviewer, Approver, Admin |
 
 ### Health Check
 
