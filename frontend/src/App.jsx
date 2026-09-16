@@ -7,6 +7,9 @@ import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import SubmissionsPage from './pages/SubmissionsPage';
 import SubmissionDetailPage from './pages/SubmissionDetailPage';
+import WorkflowQueuePage from './pages/WorkflowQueuePage';
+import WorkflowDetailPage from './pages/WorkflowDetailPage';
+import WorkflowRulesPage from './pages/WorkflowRulesPage';
 
 export default function App() {
   return (
@@ -28,6 +31,9 @@ export default function App() {
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/submissions" element={<SubmissionsPage />} />
             <Route path="/submissions/:id" element={<SubmissionDetailPage />} />
+            <Route path="/workflow" element={<WorkflowQueuePage />} />
+            <Route path="/workflow/:id" element={<WorkflowDetailPage />} />
+            <Route path="/rules" element={<WorkflowRulesPage />} />
           </Route>
 
           {/* Fallback */}

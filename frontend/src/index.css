@@ -296,3 +296,94 @@ body {
 /* ── Channel Badge ── */
 .channel-document { background: rgba(59, 130, 246, 0.12); color: #60a5fa; }
 .channel-request { background: rgba(168, 85, 247, 0.12); color: #c084fc; }
+
+/* ── Approval Stepper ── */
+.stepper-container {
+  position: relative;
+  padding-left: 2rem;
+}
+
+.stepper-line {
+  position: absolute;
+  left: 11px;
+  top: 1.25rem;
+  bottom: 1.25rem;
+  width: 2px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.stepper-step {
+  position: relative;
+  padding-bottom: 1.5rem;
+}
+
+.stepper-step:last-child {
+  padding-bottom: 0;
+}
+
+.stepper-dot {
+  position: absolute;
+  left: -2rem;
+  top: 0.125rem;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.stepper-dot.pending {
+  background: rgba(100, 116, 139, 0.2);
+  color: #94a3b8;
+  border: 2px solid rgba(100, 116, 139, 0.3);
+}
+
+.stepper-dot.current {
+  background: rgba(99, 102, 241, 0.2);
+  color: #a5b4fc;
+  border: 2px solid rgba(99, 102, 241, 0.5);
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.3);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.stepper-dot.approved {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border: 2px solid rgba(16, 185, 129, 0.4);
+}
+
+.stepper-dot.rejected {
+  background: rgba(244, 63, 94, 0.2);
+  color: #fb7185;
+  border: 2px solid rgba(244, 63, 94, 0.4);
+}
+
+/* ── Role Badges ── */
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.675rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.375rem;
+  text-transform: capitalize;
+}
+
+.role-admin { background: rgba(244, 63, 94, 0.12); color: #fb7185; }
+.role-reviewer { background: rgba(245, 158, 11, 0.12); color: #fbbf24; }
+.role-approver { background: rgba(16, 185, 129, 0.12); color: #34d399; }
+.role-submitter { background: rgba(99, 102, 241, 0.12); color: #a5b4fc; }
+
+/* ── Action Panel ── */
+.action-panel {
+  background: rgba(15, 23, 42, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 1rem;
+  padding: 1.25rem;
+}
+

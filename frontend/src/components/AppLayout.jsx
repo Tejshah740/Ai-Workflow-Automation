@@ -7,18 +7,27 @@ import {
   FileText,
   Menu,
   X,
+  GitPullRequestArrow,
+  Settings,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 
-const navItems = [
-  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/submissions', label: 'Submissions', icon: FileText },
+const allNavItems = [
+  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: null },
+  { to: '/submissions', label: 'Submissions', icon: FileText, roles: null },
+  { to: '/workflow', label: 'Workflow Queue', icon: GitPullRequestArrow, roles: ['admin', 'reviewer', 'approver'] },
+  { to: '/rules', label: 'Rules', icon: Settings, roles: ['admin'] },
 ];
 
 export default function AppLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const navItems = useMemo(
+    () => allNavItems.filter((item) => !item.roles || item.roles.includes(user?.role)),
+    [user?.role]
+  );
 
   function handleLogout() {
     logout();
