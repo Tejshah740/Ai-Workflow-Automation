@@ -81,9 +81,18 @@ An asynchronous workflow automation system built with FastAPI, PostgreSQL, Redis
 │   ├── package.json
 │   ├── tailwind.config.js
 │   └── vite.config.js
+├── tests/                        # Comprehensive test suite
+│   ├── conftest.py               # Shared test fixtures, mock data & DB lifecycle
+│   ├── unit/                     # Unit tests (validation rules, OCR scoring)
+│   ├── integration/              # Integration tests (workflow engine & approval chains)
+│   └── e2e/                      # End-to-end pipeline flow tests
+├── scripts/                      # Developer and administrative scripts
+│   └── seed_users.py             # Database user seeding script
 ├── docker-compose.yml             # Docker Compose definition (PostgreSQL, Redis, API, Worker, MailHog)
 ├── Dockerfile                    # Container specification with Tesseract & Poppler
-├── requirements.txt              # Python package dependencies
+├── requirements.txt              # Production Python package dependencies
+├── requirements-dev.txt          # Development & test dependencies
+├── pytest.ini                    # Pytest configuration
 ├── .env.example                  # Template for environment variables
 └── README.md
 ```
@@ -183,6 +192,22 @@ docker compose up --build
    ```
 
 The frontend application will be live at [http://localhost:5173](http://localhost:5173).
+
+### 6. Running Tests
+
+1. Install development and test dependencies:
+   ```bash
+   pip install -r requirements-dev.txt
+   ```
+
+2. Run the test suite:
+   ```bash
+   pytest
+   ```
+
+   - **Unit Tests** (`tests/unit/`): Run in-memory, testing validation rules and OCR scoring algorithms.
+   - **Integration Tests** (`tests/integration/`): Verify workflow engine approval chains against the test database.
+   - **End-to-End Tests** (`tests/e2e/`): Test complete submission, AI processing, failure recovery, and audit tracking.
 
 ## Processing, Workflow & Notifications Pipeline
 

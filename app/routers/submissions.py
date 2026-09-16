@@ -3,7 +3,7 @@ from pathlib import Path
 import asyncpg
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
-from rq import Retry
+from rq import Callback, Retry
 
 from app.config import settings
 from app.db import get_db
@@ -29,7 +29,7 @@ def _enqueue_processing(submission_id: int) -> None:
         process_submission_job,
         submission_id,
         retry=Retry(max=3, interval=[10, 30, 60]),
-        on_failure=handle_processing_failure,
+        on_failure=Callback(handle_processing_failure),
     )
 
 
