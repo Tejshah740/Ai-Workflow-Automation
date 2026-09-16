@@ -387,3 +387,19 @@ body {
   padding: 1.25rem;
 }
 
+/* ── Notification Animations ── */
+@keyframes bell-ring {
+  0%, 100% { transform: rotate(0deg); }
+  15% { transform: rotate(12deg); }
+  30% { transform: rotate(-12deg); }
+  45% { transform: rotate(8deg); }
+  60% { transform: rotate(-8deg); }
+  75% { transform: rotate(0deg); }
+}
+
+.animate-bell-ring {
+  animation: bell-ring 3s ease-in-out infinite;
+  transform-origin: top center;
+}
+
+

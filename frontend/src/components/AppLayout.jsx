@@ -1,5 +1,7 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useNotifications } from '../context/NotificationContext';
+import NotificationBell from './NotificationBell';
 import {
   Zap,
   LogOut,
@@ -9,6 +11,7 @@ import {
   X,
   GitPullRequestArrow,
   Settings,
+  Bell,
 } from 'lucide-react';
 import { useState, useMemo } from 'react';
 
@@ -17,10 +20,12 @@ const allNavItems = [
   { to: '/submissions', label: 'Submissions', icon: FileText, roles: null },
   { to: '/workflow', label: 'Workflow Queue', icon: GitPullRequestArrow, roles: ['admin', 'reviewer', 'approver'] },
   { to: '/rules', label: 'Rules', icon: Settings, roles: ['admin'] },
+  { to: '/notifications', label: 'Notifications', icon: Bell, roles: null, showBadge: true },
 ];
 
 export default function AppLayout() {
   const { user, logout } = useAuth();
+  const { unreadCount } = useNotifications();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -72,7 +77,7 @@ export default function AppLayout() {
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {navItems.map(({ to, label, icon: Icon }) => (
+          {navItems.map(({ to, label, icon: Icon, showBadge }) => (
             <NavLink
               key={to}
               to={to}
@@ -87,7 +92,15 @@ export default function AppLayout() {
               }
             >
               <Icon size={18} />
-              {label}
+              <span className="flex-1">{label}</span>
+              {showBadge && unreadCount > 0 && (
+                <span
+                  id="sidebar-unread-badge"
+                  className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30"
+                >
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>
@@ -119,25 +132,53 @@ export default function AppLayout() {
 
      
       <div className="flex-1 flex flex-col min-w-0 relative z-10">
-        
-        <header className="lg:hidden flex items-center h-14 px-4 border-b border-white/[0.05] bg-[#070d1f]/80 backdrop-blur-lg sticky top-0 z-20">
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="text-slate-400 hover:text-white transition-colors"
-            id="mobile-menu-toggle"
-          >
-            <Menu size={22} />
-          </button>
-          <div className="flex items-center gap-2 ml-3">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-sm shadow-indigo-500/20">
-              <Zap size={14} className="text-white" />
+       
+        <header className="lg:hidden flex items-center justify-between h-14 px-4 border-b border-white/[0.05] bg-[#070d1f]/80 backdrop-blur-lg sticky top-0 z-20">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="text-slate-400 hover:text-white transition-colors"
+              id="mobile-menu-toggle"
+            >
+              <Menu size={22} />
+            </button>
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-sm shadow-indigo-500/20">
+                <Zap size={14} className="text-white" />
+              </div>
+              <span className="text-sm font-semibold text-white">
+                AI Workflows
+              </span>
             </div>
-            <span className="text-sm font-semibold text-white">
-              AI Workflows
-            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <NotificationBell />
           </div>
         </header>
 
+       
+        <header className="hidden lg:flex items-center justify-between h-16 px-8 border-b border-white/[0.05] bg-[#070d1f]/40 backdrop-blur-md sticky top-0 z-20">
+          <div className="flex items-center gap-2.5">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              Live System
+            </span>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <NotificationBell />
+            <div className="h-5 w-px bg-white/[0.08]" />
+            <div className="flex items-center gap-2.5 text-xs">
+              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold text-xs">
+                {user?.email?.charAt(0).toUpperCase() || '?'}
+              </div>
+              <span className="font-medium text-slate-300">{user?.email}</span>
+              <span className="text-[10px] uppercase font-bold text-slate-400 bg-white/[0.05] px-1.5 py-0.5 rounded border border-white/[0.08]">
+                {user?.role}
+              </span>
+            </div>
+          </div>
+        </header>
 
         <main className="flex-1 overflow-y-auto">
           <Outlet />
