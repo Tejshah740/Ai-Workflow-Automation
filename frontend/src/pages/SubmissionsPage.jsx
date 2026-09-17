@@ -2,16 +2,14 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Plus,
-  Filter,
-  FileText,
-  Send,
   Loader2,
   ChevronLeft,
   ChevronRight,
   Inbox,
-  RefreshCw,
+  Trash2,
 } from 'lucide-react';
-import { listSubmissions } from '../api/submissions';
+import { listSubmissions, deleteSubmission } from '../api/submissions';
+import { useAuth } from '../context/AuthContext';
 import NewSubmissionModal from '../components/NewSubmissionModal';
 
 const STATUSES = [
@@ -34,15 +32,43 @@ const CHANNELS = [
 const PAGE_SIZE = 20;
 
 export default function SubmissionsPage() {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [deleteSuccess, setDeleteSuccess] = useState('');
+  const [deletingId, setDeletingId] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
 
   const [statusFilter, setStatusFilter] = useState('');
   const [channelFilter, setChannelFilter] = useState('');
   const [offset, setOffset] = useState(0);
+
+  const canDelete = (sub) => {
+    if (user?.role === 'admin') return true;
+    return sub.submitter_id === user?.id || !sub.submitter_id;
+  };
+
+  async function handleDelete(e, id) {
+    e.stopPropagation();
+    if (!window.confirm(`Delete submission #${id}? This action cannot be undone.`)) {
+      return;
+    }
+    setDeletingId(id);
+    setError('');
+    setDeleteSuccess('');
+    try {
+      await deleteSubmission(id);
+      setSubmissions((prev) => prev.filter((s) => s.id !== id));
+      setDeleteSuccess(`Submission #${id} deleted successfully.`);
+      setTimeout(() => setDeleteSuccess(''), 3500);
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to delete submission.');
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   const fetchSubmissions = useCallback(async () => {
     setLoading(true);
@@ -91,132 +117,126 @@ export default function SubmissionsPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 animate-slide-up">
-     
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
             Submissions
           </h1>
-          <p className="text-sm text-slate-400 mt-1">
+          <p className="text-sm text-slate-500 mt-0.5">
             Manage your documents and requests
           </p>
         </div>
         <button
           onClick={() => setModalOpen(true)}
-          className="btn-gradient flex items-center gap-2 text-sm h-10 px-5 self-start"
+          className="btn-gradient flex items-center gap-2 text-sm h-9 px-4 self-start"
           id="new-submission-btn"
         >
-          <Plus size={16} />
+          <Plus size={15} />
           New Submission
         </button>
       </div>
 
-      
-      <div className="glass-card p-4 mb-6">
+      <div className="glass-card p-3 mb-6">
         <div className="flex flex-col sm:flex-row gap-3">
-    
-          <div className="flex items-center gap-2 flex-1">
-            <Filter size={16} className="text-slate-500 flex-shrink-0" />
+          <div className="flex-1">
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="flex-1 bg-white/[0.03] border border-white/[0.06] rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-indigo-500/50 transition-colors cursor-pointer"
+              className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-sm text-slate-800 focus:outline-none focus:border-slate-900 transition-colors cursor-pointer"
               id="status-filter"
             >
               {STATUSES.map((s) => (
-                <option key={s.value} value={s.value} className="bg-slate-900">
+                <option key={s.value} value={s.value}>
                   {s.label}
                 </option>
               ))}
             </select>
           </div>
 
-         
-          <div className="flex rounded-lg border border-white/[0.06] overflow-hidden flex-shrink-0">
+          <div className="flex rounded-lg border border-slate-200 overflow-hidden flex-shrink-0">
             {CHANNELS.map((ch) => (
               <button
                 key={ch.value}
                 onClick={() => setChannelFilter(ch.value)}
-                className={`px-3.5 py-2 text-xs font-medium transition-all duration-200 ${
+                className={`px-3 py-1.5 text-xs font-medium transition-colors ${
                   channelFilter === ch.value
-                    ? 'bg-indigo-500/15 text-indigo-300'
-                    : 'text-slate-500 hover:text-slate-300 hover:bg-white/[0.03]'
+                    ? 'bg-slate-900 text-white'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                 }`}
               >
                 {ch.label}
               </button>
             ))}
           </div>
-
-    
-          <button
-            onClick={fetchSubmissions}
-            disabled={loading}
-            className="text-slate-500 hover:text-white transition-colors flex-shrink-0 p-2 rounded-lg hover:bg-white/[0.04]"
-            title="Refresh"
-          >
-            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
-          </button>
         </div>
       </div>
 
-      
+      {deleteSuccess && (
+        <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm text-emerald-700 mb-6 animate-fade-in flex items-center justify-between">
+          <span>{deleteSuccess}</span>
+          <button
+            onClick={() => setDeleteSuccess('')}
+            className="text-xs text-emerald-600 hover:text-emerald-800 font-medium cursor-pointer"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {error && (
-        <div className="rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-300 mb-6 animate-fade-in">
+        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 mb-6 animate-fade-in">
           {error}
         </div>
       )}
 
       {loading && submissions.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20">
-          <Loader2 size={32} className="animate-spin text-indigo-400 mb-3" />
-          <p className="text-sm text-slate-500">Loading submissions…</p>
+          <Loader2 size={24} className="animate-spin text-slate-400 mb-2" />
+          <p className="text-xs text-slate-500">Loading submissions…</p>
         </div>
       ) : submissions.length === 0 ? (
-        
         <div className="glass-card flex flex-col items-center justify-center py-16 px-6 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-white/[0.04] flex items-center justify-center mb-4">
-            <Inbox size={32} className="text-slate-600" />
-          </div>
-          <h3 className="text-lg font-semibold text-white mb-1.5">
+          <Inbox size={32} className="text-slate-400 mb-3" />
+          <h3 className="text-base font-semibold text-slate-900 mb-1">
             No submissions yet
           </h3>
-          <p className="text-sm text-slate-500 mb-6 max-w-sm">
-            Upload a document or submit a request to get started with AI-powered
-            processing.
+          <p className="text-sm text-slate-500 mb-5 max-w-sm">
+            Upload a document or submit a request to get started with AI-powered processing.
           </p>
           <button
             onClick={() => setModalOpen(true)}
-            className="btn-gradient flex items-center gap-2 text-sm h-10 px-5"
+            className="btn-gradient flex items-center gap-2 text-sm h-9 px-4"
           >
-            <Plus size={16} />
+            <Plus size={15} />
             Create your first submission
           </button>
         </div>
       ) : (
         <>
-          
           <div className="hidden md:block glass-card overflow-hidden">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-white/[0.06]">
-                  <th className="text-left text-xs font-medium text-slate-500 px-5 py-3.5 uppercase tracking-wider">
+                <tr className="border-b border-slate-200 bg-slate-50/80">
+                  <th className="text-left text-xs font-semibold text-slate-600 px-4 py-3 uppercase tracking-wider">
                     ID
                   </th>
-                  <th className="text-left text-xs font-medium text-slate-500 px-5 py-3.5 uppercase tracking-wider">
+                  <th className="text-left text-xs font-semibold text-slate-600 px-4 py-3 uppercase tracking-wider">
                     Type
                   </th>
-                  <th className="text-left text-xs font-medium text-slate-500 px-5 py-3.5 uppercase tracking-wider">
+                  <th className="text-left text-xs font-semibold text-slate-600 px-4 py-3 uppercase tracking-wider">
                     Channel
                   </th>
-                  <th className="text-left text-xs font-medium text-slate-500 px-5 py-3.5 uppercase tracking-wider">
+                  <th className="text-left text-xs font-semibold text-slate-600 px-4 py-3 uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="text-left text-xs font-medium text-slate-500 px-5 py-3.5 uppercase tracking-wider">
+                  <th className="text-left text-xs font-semibold text-slate-600 px-4 py-3 uppercase tracking-wider">
                     Details
                   </th>
-                  <th className="text-left text-xs font-medium text-slate-500 px-5 py-3.5 uppercase tracking-wider">
+                  <th className="text-left text-xs font-semibold text-slate-600 px-4 py-3 uppercase tracking-wider">
                     Date
+                  </th>
+                  <th className="text-right text-xs font-semibold text-slate-600 px-4 py-3 uppercase tracking-wider">
+                    Action
                   </th>
                 </tr>
               </thead>
@@ -225,46 +245,52 @@ export default function SubmissionsPage() {
                   <tr
                     key={sub.id}
                     onClick={() => navigate(`/submissions/${sub.id}`)}
-                    className="border-b border-white/[0.03] hover:bg-white/[0.02] cursor-pointer transition-colors duration-150 group"
+                    className="border-b border-slate-100 hover:bg-slate-50/60 cursor-pointer transition-colors"
                   >
-                    <td className="px-5 py-4 text-sm font-mono text-slate-400">
+                    <td className="px-4 py-3 text-sm font-mono text-slate-500">
                       #{sub.id}
                     </td>
-                    <td className="px-5 py-4 text-sm text-white font-medium capitalize">
+                    <td className="px-4 py-3 text-sm text-slate-900 font-medium capitalize">
                       {sub.submission_type.replace(/_/g, ' ')}
                     </td>
-                    <td className="px-5 py-4">
-                      <span
-                        className={`status-badge ${
-                          sub.channel === 'document'
-                            ? 'channel-document'
-                            : 'channel-request'
-                        }`}
-                      >
-                        {sub.channel === 'document' ? (
-                          <FileText size={12} />
-                        ) : (
-                          <Send size={12} />
-                        )}
-                        {sub.channel}
-                      </span>
+                    <td className="px-4 py-3 text-xs text-slate-600 capitalize">
+                      {sub.channel}
                     </td>
-                    <td className="px-5 py-4">
-                      <span
-                        className={`status-badge status-${sub.status}`}
-                      >
+                    <td className="px-4 py-3">
+                      <span className={`status-indicator status-${sub.status}`}>
+                        <span className="status-dot" />
                         {statusLabel(sub.status)}
                       </span>
                     </td>
-                    <td className="px-5 py-4 text-sm text-slate-500 max-w-[200px] truncate">
+                    <td className="px-4 py-3 text-sm text-slate-500 max-w-[200px] truncate">
                       {sub.channel === 'document'
                         ? sub.original_filename || '—'
                         : sub.request_fields
                         ? Object.keys(sub.request_fields).length + ' fields'
                         : '—'}
                     </td>
-                    <td className="px-5 py-4 text-sm text-slate-500 whitespace-nowrap">
+                    <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">
                       {formatDate(sub.created_at)}
+                    </td>
+                    <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                      {canDelete(sub) ? (
+                        <button
+                          onClick={(e) => handleDelete(e, sub.id)}
+                          disabled={deletingId === sub.id}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium text-rose-600 hover:text-rose-700 hover:bg-rose-50 border border-rose-200 transition-colors cursor-pointer disabled:opacity-50"
+                          id={`delete-btn-${sub.id}`}
+                          title={`Delete submission #${sub.id}`}
+                        >
+                          {deletingId === sub.id ? (
+                            <Loader2 size={12} className="animate-spin" />
+                          ) : (
+                            <Trash2 size={12} />
+                          )}
+                          <span>Delete</span>
+                        </button>
+                      ) : (
+                        <span className="text-xs text-slate-300 select-none">—</span>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -272,68 +298,75 @@ export default function SubmissionsPage() {
             </table>
           </div>
 
-         
           <div className="md:hidden space-y-3">
             {submissions.map((sub) => (
               <div
                 key={sub.id}
                 onClick={() => navigate(`/submissions/${sub.id}`)}
-                className="glass-card p-4 cursor-pointer hover:bg-white/[0.02] transition-colors duration-150"
+                className="glass-card p-4 cursor-pointer hover:bg-slate-50/60 transition-colors"
               >
-                <div className="flex items-start justify-between mb-3">
+                <div className="flex items-start justify-between mb-2">
                   <div>
-                    <p className="text-sm font-medium text-white capitalize">
+                    <p className="text-sm font-medium text-slate-900 capitalize">
                       {sub.submission_type.replace(/_/g, ' ')}
                     </p>
                     <p className="text-xs text-slate-500 font-mono mt-0.5">
                       #{sub.id}
                     </p>
                   </div>
-                  <span className={`status-badge status-${sub.status}`}>
+                  <span className={`status-indicator status-${sub.status}`}>
+                    <span className="status-dot" />
                     {statusLabel(sub.status)}
                   </span>
                 </div>
-                <div className="flex items-center gap-3 text-xs text-slate-500">
-                  <span
-                    className={`status-badge ${
-                      sub.channel === 'document'
-                        ? 'channel-document'
-                        : 'channel-request'
-                    }`}
-                  >
-                    {sub.channel === 'document' ? (
-                      <FileText size={10} />
-                    ) : (
-                      <Send size={10} />
+                <div className="flex items-center justify-between pt-2.5 border-t border-slate-100 mt-2.5">
+                  <div className="flex items-center gap-2 text-xs text-slate-500">
+                    <span className="capitalize">{sub.channel}</span>
+                    <span>·</span>
+                    <span>{formatDate(sub.created_at)}</span>
+                    {sub.channel === 'document' && sub.file_size_bytes && (
+                      <>
+                        <span>·</span>
+                        <span>{formatFileSize(sub.file_size_bytes)}</span>
+                      </>
                     )}
-                    {sub.channel}
-                  </span>
-                  <span>{formatDate(sub.created_at)}</span>
-                  {sub.channel === 'document' && sub.file_size_bytes && (
-                    <span>{formatFileSize(sub.file_size_bytes)}</span>
+                  </div>
+                  {canDelete(sub) && (
+                    <button
+                      onClick={(e) => handleDelete(e, sub.id)}
+                      disabled={deletingId === sub.id}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-rose-600 hover:text-rose-700 hover:bg-rose-50 border border-rose-200 transition-colors cursor-pointer disabled:opacity-50"
+                      id={`mobile-delete-btn-${sub.id}`}
+                    >
+                      {deletingId === sub.id ? (
+                        <Loader2 size={11} className="animate-spin" />
+                      ) : (
+                        <Trash2 size={11} />
+                      )}
+                      <span>Delete</span>
+                    </button>
                   )}
                 </div>
               </div>
             ))}
           </div>
 
-          
-          <div className="flex items-center justify-between mt-6">
-            <p className="text-xs text-slate-600">
+          <div className="flex items-center justify-between mt-5">
+            <p className="text-xs text-slate-500">
               Showing {offset + 1}–{offset + submissions.length}
             </p>
             <div className="flex gap-2">
               <button
                 onClick={() => setOffset((o) => Math.max(0, o - PAGE_SIZE))}
                 disabled={offset === 0}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-white/[0.06] text-xs text-slate-400 hover:text-white hover:bg-white/[0.04] transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 <ChevronLeft size={14} /> Prev
               </button>
               <button
                 onClick={() => setOffset((o) => o + PAGE_SIZE)}
                 disabled={submissions.length < PAGE_SIZE}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-white/[0.06] text-xs text-slate-400 hover:text-white hover:bg-white/[0.04] transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 Next <ChevronRight size={14} />
               </button>
@@ -342,7 +375,6 @@ export default function SubmissionsPage() {
         </>
       )}
 
-    
       <NewSubmissionModal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}

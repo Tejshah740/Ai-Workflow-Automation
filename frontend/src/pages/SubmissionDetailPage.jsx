@@ -2,18 +2,14 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
-  FileText,
-  Send,
   Download,
   Trash2,
   Loader2,
-  Clock,
   User,
   AlertTriangle,
   CheckCircle2,
   XCircle,
   Info,
-  ChevronRight,
 } from 'lucide-react';
 import {
   getSubmission,
@@ -23,6 +19,7 @@ import {
   getExtraction,
   getValidation,
 } from '../api/submissions';
+import { useAuth } from '../context/AuthContext';
 
 const TABS = [
   { key: 'details', label: 'Details' },
@@ -33,6 +30,7 @@ const TABS = [
 export default function SubmissionDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [submission, setSubmission] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -133,7 +131,7 @@ export default function SubmissionDetailPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-32">
-        <Loader2 size={32} className="animate-spin text-indigo-400" />
+        <Loader2 size={24} className="animate-spin text-slate-400" />
       </div>
     );
   }
@@ -143,105 +141,79 @@ export default function SubmissionDetailPage() {
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
         <button
           onClick={() => navigate('/submissions')}
-          className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-white transition-colors mb-6"
+          className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-900 transition-colors mb-6"
         >
           <ArrowLeft size={16} /> Back to submissions
         </button>
         <div className="glass-card p-8 text-center">
-          <XCircle size={40} className="text-red-400 mx-auto mb-3" />
-          <p className="text-red-300">{error}</p>
+          <XCircle size={32} className="text-rose-500 mx-auto mb-2" />
+          <p className="text-rose-700 text-sm">{error}</p>
         </div>
       </div>
     );
   }
 
   const sub = submission;
-  const canDelete = sub.status === 'submitted';
+  const canDelete = user?.role === 'admin' || sub.submitter_id === user?.id || !sub.submitter_id;
   const canDownload = sub.channel === 'document';
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 animate-slide-up">
-     
       <button
         onClick={() => navigate('/submissions')}
-        className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-white transition-colors mb-6"
+        className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-900 transition-colors mb-6"
         id="back-to-list"
       >
         <ArrowLeft size={16} /> Back to submissions
       </button>
 
-     
       {error && (
-        <div className="rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-300 mb-6 animate-fade-in">
+        <div className="rounded-lg bg-rose-50 border border-rose-200 px-4 py-3 text-sm text-rose-700 mb-6 animate-fade-in">
           {error}
         </div>
       )}
 
-      
-      <div className="glass-card p-6 sm:p-8 mb-6">
+      <div className="glass-card p-6 sm:p-7 mb-6">
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-          <div className="flex items-start gap-4">
-            
-            <div
-              className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                sub.channel === 'document'
-                  ? 'bg-blue-500/10'
-                  : 'bg-purple-500/10'
-              }`}
-            >
-              {sub.channel === 'document' ? (
-                <FileText size={22} className="text-blue-400" />
-              ) : (
-                <Send size={22} className="text-purple-400" />
-              )}
+          <div>
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <h1 className="text-xl font-bold text-slate-900 capitalize">
+                {sub.submission_type.replace(/_/g, ' ')}
+              </h1>
+              <span className="text-sm font-mono text-slate-400">
+                #{sub.id}
+              </span>
             </div>
-            <div>
-              <div className="flex items-center gap-2.5 flex-wrap">
-                <h1 className="text-xl font-bold text-white capitalize">
-                  {sub.submission_type.replace(/_/g, ' ')}
-                </h1>
-                <span className="text-sm font-mono text-slate-500">
-                  #{sub.id}
-                </span>
-              </div>
-              <div className="flex items-center gap-2.5 mt-2 flex-wrap">
-                <span className={`status-badge status-${sub.status}`}>
-                  {statusLabel(sub.status)}
-                </span>
-                <span
-                  className={`status-badge ${
-                    sub.channel === 'document'
-                      ? 'channel-document'
-                      : 'channel-request'
-                  }`}
-                >
-                  {sub.channel}
-                </span>
-              </div>
-              <div className="flex items-center gap-4 mt-3 text-xs text-slate-500">
-                <span className="flex items-center gap-1">
-                  <Clock size={12} /> Created {formatDate(sub.created_at)}
-                </span>
-                <span className="flex items-center gap-1">
-                  <Clock size={12} /> Updated {formatDate(sub.updated_at)}
-                </span>
-              </div>
+
+            <div className="flex items-center gap-2 mt-2 flex-wrap">
+              <span className={`status-indicator status-${sub.status}`}>
+                <span className="status-dot" />
+                {statusLabel(sub.status)}
+              </span>
+              <span className="text-xs text-slate-500 capitalize">
+                · {sub.channel}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2 mt-3 text-xs text-slate-500">
+              <span>Created {formatDate(sub.created_at)}</span>
+              <span>·</span>
+              <span>Updated {formatDate(sub.updated_at)}</span>
             </div>
           </div>
 
-          
           <div className="flex gap-2 flex-shrink-0">
             {canDownload && (
               <button
                 onClick={handleDownload}
                 disabled={downloading}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/[0.06] text-sm text-slate-300 hover:text-white hover:bg-white/[0.04] transition-all disabled:opacity-50"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 text-xs text-slate-700 hover:text-slate-900 hover:bg-slate-50 transition-colors disabled:opacity-50"
                 id="download-btn"
               >
                 {downloading ? (
-                  <Loader2 size={14} className="animate-spin" />
+                  <Loader2 size={13} className="animate-spin" />
                 ) : (
-                  <Download size={14} />
+                  <Download size={13} />
                 )}
                 Download
               </button>
@@ -250,13 +222,13 @@ export default function SubmissionDetailPage() {
               <button
                 onClick={handleDelete}
                 disabled={deleting}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-red-500/20 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/[0.06] transition-all disabled:opacity-50"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-rose-200 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 transition-colors disabled:opacity-50"
                 id="delete-btn"
               >
                 {deleting ? (
-                  <Loader2 size={14} className="animate-spin" />
+                  <Loader2 size={13} className="animate-spin" />
                 ) : (
-                  <Trash2 size={14} />
+                  <Trash2 size={13} />
                 )}
                 Delete
               </button>
@@ -265,9 +237,8 @@ export default function SubmissionDetailPage() {
         </div>
       </div>
 
-     
       <div className="glass-card overflow-hidden">
-        <div className="tab-bar px-2 sm:px-4">
+        <div className="tab-bar px-4 sm:px-6">
           {TABS.map((tab) => (
             <button
               key={tab.key}
@@ -303,12 +274,11 @@ export default function SubmissionDetailPage() {
   );
 }
 
-
 function DetailsTab({ sub, formatFileSize }) {
   if (sub.channel === 'document') {
     return (
       <div className="space-y-4 animate-fade-in">
-        <h3 className="text-sm font-semibold text-slate-300 mb-3">
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">
           Document Information
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -324,26 +294,25 @@ function DetailsTab({ sub, formatFileSize }) {
     );
   }
 
-
   const fields = sub.request_fields || {};
   const entries = Object.entries(fields);
 
   return (
     <div className="space-y-4 animate-fade-in">
-      <h3 className="text-sm font-semibold text-slate-300 mb-3">
+      <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">
         Request Fields
       </h3>
       {entries.length === 0 ? (
         <p className="text-sm text-slate-500">No fields submitted.</p>
       ) : (
-        <div className="rounded-xl border border-white/[0.04] overflow-hidden">
+        <div className="rounded-lg border border-slate-200 overflow-hidden">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-white/[0.06]">
-                <th className="text-left text-xs font-medium text-slate-500 px-4 py-2.5 uppercase tracking-wider w-1/3">
+              <tr className="border-b border-slate-200 bg-slate-50/80">
+                <th className="text-left text-xs font-medium text-slate-500 px-4 py-2 uppercase tracking-wider w-1/3">
                   Field
                 </th>
-                <th className="text-left text-xs font-medium text-slate-500 px-4 py-2.5 uppercase tracking-wider">
+                <th className="text-left text-xs font-medium text-slate-500 px-4 py-2 uppercase tracking-wider">
                   Value
                 </th>
               </tr>
@@ -352,12 +321,12 @@ function DetailsTab({ sub, formatFileSize }) {
               {entries.map(([key, val]) => (
                 <tr
                   key={key}
-                  className="border-b border-white/[0.03] last:border-0"
+                  className="border-b border-slate-100 last:border-0"
                 >
-                  <td className="px-4 py-3 text-sm font-medium text-indigo-300 font-mono">
+                  <td className="px-4 py-2.5 text-sm font-medium text-slate-900 font-mono">
                     {key}
                   </td>
-                  <td className="px-4 py-3 text-sm text-slate-300 break-all">
+                  <td className="px-4 py-2.5 text-sm text-slate-600 break-all">
                     {typeof val === 'object' ? JSON.stringify(val) : String(val)}
                   </td>
                 </tr>
@@ -377,7 +346,7 @@ function AITab({ extraction, validation, loading, error, confidenceLevel }) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 size={24} className="animate-spin text-indigo-400" />
+        <Loader2 size={20} className="animate-spin text-slate-400" />
       </div>
     );
   }
@@ -385,9 +354,9 @@ function AITab({ extraction, validation, loading, error, confidenceLevel }) {
   if (error && !extraction && !validation) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center animate-fade-in">
-        <Info size={32} className="text-slate-600 mb-3" />
+        <Info size={28} className="text-slate-400 mb-2" />
         <p className="text-sm text-slate-500">{error}</p>
-        <p className="text-xs text-slate-600 mt-1">
+        <p className="text-xs text-slate-400 mt-1">
           AI results appear after processing is complete.
         </p>
       </div>
@@ -396,19 +365,17 @@ function AITab({ extraction, validation, loading, error, confidenceLevel }) {
 
   return (
     <div className="space-y-6 animate-fade-in">
-     
       {extraction && (
         <div>
-          <h3 className="text-sm font-semibold text-slate-300 mb-4">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">
             Extraction Results
           </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
-            
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
             {extraction.ocr_confidence != null && (
-              <div className="rounded-xl bg-white/[0.02] border border-white/[0.04] p-4">
-                <div className="flex items-center justify-between mb-2">
+              <div className="rounded-lg bg-slate-50 border border-slate-200 p-3.5">
+                <div className="flex items-center justify-between mb-1.5">
                   <p className="text-xs text-slate-500">OCR Confidence</p>
-                  <p className="text-sm font-semibold text-white">
+                  <p className="text-sm font-semibold text-slate-900">
                     {(extraction.ocr_confidence * 100).toFixed(1)}%
                   </p>
                 </div>
@@ -424,14 +391,14 @@ function AITab({ extraction, validation, loading, error, confidenceLevel }) {
                 </div>
               </div>
             )}
-            
+
             {extraction.classification_confidence != null && (
-              <div className="rounded-xl bg-white/[0.02] border border-white/[0.04] p-4">
-                <div className="flex items-center justify-between mb-2">
+              <div className="rounded-lg bg-slate-50 border border-slate-200 p-3.5">
+                <div className="flex items-center justify-between mb-1.5">
                   <p className="text-xs text-slate-500">
                     Classification Confidence
                   </p>
-                  <p className="text-sm font-semibold text-white">
+                  <p className="text-sm font-semibold text-slate-900">
                     {(extraction.classification_confidence * 100).toFixed(1)}%
                   </p>
                 </div>
@@ -456,22 +423,20 @@ function AITab({ extraction, validation, loading, error, confidenceLevel }) {
             />
           )}
 
-         
           {extraction.raw_text && (
             <div className="mt-4">
-              <p className="text-xs text-slate-500 mb-2">Extracted Text</p>
-              <pre className="rounded-xl bg-white/[0.02] border border-white/[0.04] p-4 text-xs text-slate-300 font-mono overflow-x-auto max-h-60 whitespace-pre-wrap">
+              <p className="text-xs text-slate-500 mb-1.5">Extracted Text</p>
+              <pre className="rounded-lg bg-slate-50 border border-slate-200 p-3 text-xs text-slate-800 font-mono overflow-x-auto max-h-60 whitespace-pre-wrap">
                 {extraction.raw_text}
               </pre>
             </div>
           )}
 
-          
           {extraction.extracted_fields &&
             Object.keys(extraction.extracted_fields).length > 0 && (
               <div className="mt-4">
-                <p className="text-xs text-slate-500 mb-2">Extracted Fields</p>
-                <pre className="rounded-xl bg-white/[0.02] border border-white/[0.04] p-4 text-xs text-slate-300 font-mono overflow-x-auto max-h-60 whitespace-pre-wrap">
+                <p className="text-xs text-slate-500 mb-1.5">Extracted Fields</p>
+                <pre className="rounded-lg bg-slate-50 border border-slate-200 p-3 text-xs text-slate-800 font-mono overflow-x-auto max-h-60 whitespace-pre-wrap">
                   {JSON.stringify(extraction.extracted_fields, null, 2)}
                 </pre>
               </div>
@@ -479,17 +444,16 @@ function AITab({ extraction, validation, loading, error, confidenceLevel }) {
         </div>
       )}
 
-  
       {validation && (
         <div>
-          <h3 className="text-sm font-semibold text-slate-300 mb-4 flex items-center gap-2">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-2">
             Validation Result
             {validation.is_valid ? (
-              <span className="inline-flex items-center gap-1 text-xs text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+              <span className="text-xs font-medium text-emerald-600 flex items-center gap-1">
                 <CheckCircle2 size={12} /> Passed
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1 text-xs text-red-400 bg-red-500/10 px-2 py-0.5 rounded-full">
+              <span className="text-xs font-medium text-rose-600 flex items-center gap-1">
                 <XCircle size={12} /> Failed
               </span>
             )}
@@ -500,28 +464,28 @@ function AITab({ extraction, validation, loading, error, confidenceLevel }) {
               {validation.issues.map((issue, i) => (
                 <div
                   key={i}
-                  className={`flex items-start gap-3 rounded-xl p-3.5 border ${
+                  className={`flex items-start gap-2.5 rounded-lg p-3 border ${
                     issue.severity === 'error'
-                      ? 'bg-red-500/[0.05] border-red-500/10'
-                      : 'bg-amber-500/[0.05] border-amber-500/10'
+                      ? 'bg-rose-50 border-rose-200'
+                      : 'bg-amber-50 border-amber-200'
                   }`}
                 >
                   {issue.severity === 'error' ? (
                     <XCircle
-                      size={16}
-                      className="text-red-400 flex-shrink-0 mt-0.5"
+                      size={14}
+                      className="text-rose-600 flex-shrink-0 mt-0.5"
                     />
                   ) : (
                     <AlertTriangle
-                      size={16}
-                      className="text-amber-400 flex-shrink-0 mt-0.5"
+                      size={14}
+                      className="text-amber-600 flex-shrink-0 mt-0.5"
                     />
                   )}
                   <div>
-                    <p className="text-xs font-medium text-white">
+                    <p className="text-xs font-medium text-slate-900">
                       {issue.field}
                     </p>
-                    <p className="text-xs text-slate-400 mt-0.5">
+                    <p className="text-xs text-slate-600 mt-0.5">
                       {issue.issue}
                     </p>
                   </div>
@@ -539,7 +503,7 @@ function AuditTab({ logs, loading, formatDate }) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 size={24} className="animate-spin text-indigo-400" />
+        <Loader2 size={20} className="animate-spin text-slate-400" />
       </div>
     );
   }
@@ -547,7 +511,7 @@ function AuditTab({ logs, loading, formatDate }) {
   if (logs.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center animate-fade-in">
-        <Info size={32} className="text-slate-600 mb-3" />
+        <Info size={28} className="text-slate-400 mb-2" />
         <p className="text-sm text-slate-500">No audit events recorded.</p>
       </div>
     );
@@ -556,23 +520,21 @@ function AuditTab({ logs, loading, formatDate }) {
   return (
     <div className="animate-fade-in">
       <div className="relative">
-        
-        <div className="absolute left-[17px] top-2 bottom-2 w-px bg-white/[0.06]" />
+        <div className="absolute left-[7px] top-2 bottom-2 w-px bg-slate-200" />
 
-        <div className="space-y-4">
+        <div className="space-y-3">
           {logs.map((log, i) => (
-            <div key={log.id || i} className="flex gap-4 relative">
-             
-              <div className="w-[35px] flex items-start justify-center flex-shrink-0 pt-1">
-                <div className="w-2.5 h-2.5 rounded-full bg-indigo-500/60 ring-4 ring-[#070d1f] z-10" />
+            <div key={log.id || i} className="flex gap-3 relative">
+              <div className="w-[15px] flex items-start justify-center flex-shrink-0 pt-1.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-slate-400 z-10" />
               </div>
-              
-              <div className="flex-1 rounded-xl bg-white/[0.02] border border-white/[0.04] p-4 min-w-0">
-                <div className="flex items-start justify-between gap-2 mb-1.5">
-                  <p className="text-sm font-medium text-white capitalize">
+
+              <div className="flex-1 rounded-lg bg-slate-50 border border-slate-200 p-3 min-w-0">
+                <div className="flex items-start justify-between gap-2 mb-1">
+                  <p className="text-sm font-medium text-slate-900 capitalize">
                     {log.event?.replace(/_/g, ' ')}
                   </p>
-                  <span className="text-[11px] text-slate-600 whitespace-nowrap">
+                  <span className="text-[11px] text-slate-500 whitespace-nowrap">
                     {formatDate(log.created_at)}
                   </span>
                 </div>
@@ -584,7 +546,7 @@ function AuditTab({ logs, loading, formatDate }) {
                   )}
                 </div>
                 {log.details && Object.keys(log.details).length > 0 && (
-                  <pre className="mt-2 text-[11px] text-slate-500 font-mono bg-white/[0.02] rounded-lg p-2 overflow-x-auto">
+                  <pre className="mt-2 text-[11px] text-slate-700 font-mono bg-white border border-slate-200 rounded p-2 overflow-x-auto">
                     {JSON.stringify(log.details, null, 2)}
                   </pre>
                 )}
@@ -599,10 +561,9 @@ function AuditTab({ logs, loading, formatDate }) {
 
 function InfoRow({ label, value }) {
   return (
-    <div className="flex items-center gap-3 rounded-xl bg-white/[0.02] border border-white/[0.04] px-4 py-3">
-      <p className="text-xs text-slate-500 whitespace-nowrap">{label}</p>
-      <ChevronRight size={12} className="text-slate-700" />
-      <p className="text-sm text-white font-medium truncate">{value}</p>
+    <div className="flex items-center justify-between rounded-lg bg-slate-50 border border-slate-200 px-3.5 py-2.5">
+      <p className="text-xs text-slate-500">{label}</p>
+      <p className="text-xs text-slate-900 font-medium truncate max-w-[65%]">{value}</p>
     </div>
   );
 }

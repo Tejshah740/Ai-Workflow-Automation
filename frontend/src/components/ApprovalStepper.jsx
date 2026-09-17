@@ -1,4 +1,4 @@
-import { Check, X, Clock, Shield } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 
 export default function ApprovalStepper({ approvals, currentLevel }) {
   if (!approvals || approvals.length === 0) {
@@ -19,8 +19,6 @@ export default function ApprovalStepper({ approvals, currentLevel }) {
   function dotIcon(approval) {
     if (approval.decision === 'approved') return <Check size={11} />;
     if (approval.decision === 'rejected') return <X size={11} />;
-    if (currentLevel && approval.id === currentLevel.id)
-      return <Clock size={10} />;
     return <span>{approval.level}</span>;
   }
 
@@ -39,58 +37,53 @@ export default function ApprovalStepper({ approvals, currentLevel }) {
       <div className="stepper-line" />
       {approvals.map((approval) => (
         <div key={approval.id} className="stepper-step">
-          
           <div className={`stepper-dot ${dotClass(approval)}`}>
             {dotIcon(approval)}
           </div>
 
-          
-          <div className="rounded-xl bg-white/[0.02] border border-white/[0.04] p-4">
-            <div className="flex items-center justify-between gap-2 mb-1.5">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-white">
+          <div className="rounded-lg bg-slate-50 border border-slate-200 p-3.5">
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-semibold text-slate-900">
                   Level {approval.level}
                 </span>
-                <span className={`role-badge role-${approval.required_role}`}>
-                  <Shield size={10} />
-                  {approval.required_role}
+                <span className="text-xs text-slate-500 capitalize">
+                  · {approval.required_role}
                 </span>
               </div>
-              {approval.decision && (
-                <span
-                  className={`status-badge ${
-                    approval.decision === 'approved'
-                      ? 'status-approved'
-                      : 'status-rejected'
-                  }`}
-                >
+
+              {approval.decision ? (
+                <span className={`status-indicator ${approval.decision === 'approved' ? 'status-approved' : 'status-rejected'}`}>
+                  <span className="status-dot" />
                   {approval.decision}
                 </span>
-              )}
-              {!approval.decision && currentLevel?.id === approval.id && (
-                <span className="status-badge status-ai_processing">
+              ) : currentLevel?.id === approval.id ? (
+                <span className="status-indicator status-ai_processing">
+                  <span className="status-dot" />
                   awaiting
                 </span>
-              )}
-              {!approval.decision && currentLevel?.id !== approval.id && (
-                <span className="status-badge status-submitted">pending</span>
+              ) : (
+                <span className="status-indicator status-submitted">
+                  <span className="status-dot" />
+                  pending
+                </span>
               )}
             </div>
 
             {approval.decision && (
-              <div className="mt-2 space-y-1">
+              <div className="mt-2 space-y-1 text-xs">
                 {approval.decided_by && (
-                  <p className="text-xs text-slate-500">
+                  <p className="text-slate-500">
                     Decided by User #{approval.decided_by}
                   </p>
                 )}
                 {approval.comment && (
-                  <p className="text-xs text-slate-400 bg-white/[0.02] rounded-lg px-3 py-2 border border-white/[0.04] italic">
+                  <p className="text-slate-700 bg-white rounded px-2.5 py-1.5 border border-slate-200 italic">
                     &ldquo;{approval.comment}&rdquo;
                   </p>
                 )}
                 {approval.decided_at && (
-                  <p className="text-[11px] text-slate-600">
+                  <p className="text-[11px] text-slate-400">
                     {formatDate(approval.decided_at)}
                   </p>
                 )}

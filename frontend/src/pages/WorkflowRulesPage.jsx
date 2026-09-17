@@ -2,15 +2,13 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   Loader2,
   Plus,
-  Shield,
   Trash2,
   ChevronUp,
   ChevronDown,
   AlertCircle,
   CheckCircle2,
-  Settings,
+  Inbox,
   X,
-  Save,
 } from 'lucide-react';
 import { getRules, upsertRule } from '../api/workflow';
 
@@ -133,73 +131,70 @@ export default function WorkflowRulesPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-32">
-        <Loader2 size={32} className="animate-spin text-indigo-400" />
+        <Loader2 size={24} className="animate-spin text-slate-400" />
       </div>
     );
   }
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 animate-slide-up">
-      
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
             Workflow Rules
           </h1>
-          <p className="text-sm text-slate-400 mt-1">
+          <p className="text-sm text-slate-500 mt-0.5">
             Configure approval chains per submission type
           </p>
         </div>
         <button
           onClick={openAddModal}
-          className="btn-gradient flex items-center gap-2 text-sm h-10 px-5 self-start"
+          className="btn-gradient flex items-center gap-2 text-sm h-9 px-4 self-start"
           id="add-rule-btn"
         >
-          <Plus size={16} /> Add Rule
+          <Plus size={15} /> Add Rule
         </button>
       </div>
 
       {error && (
-        <div className="rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-300 mb-6">
+        <div className="rounded-lg bg-rose-50 border border-rose-200 px-4 py-3 text-sm text-rose-700 mb-6">
           {error}
         </div>
       )}
 
       {rules.length === 0 ? (
         <div className="glass-card flex flex-col items-center justify-center py-16 px-6 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-white/[0.04] flex items-center justify-center mb-4">
-            <Settings size={32} className="text-slate-600" />
-          </div>
-          <h3 className="text-lg font-semibold text-white mb-1.5">
+          <Inbox size={32} className="text-slate-400 mb-3" />
+          <h3 className="text-base font-semibold text-slate-900 mb-1">
             No rules configured
           </h3>
-          <p className="text-sm text-slate-500 mb-6 max-w-sm">
+          <p className="text-sm text-slate-500 mb-5 max-w-sm">
             Create workflow rules to define approval chains for different
             submission types. Without rules, the default single-level approver
             chain is used.
           </p>
           <button
             onClick={openAddModal}
-            className="btn-gradient flex items-center gap-2 text-sm h-10 px-5"
+            className="btn-gradient flex items-center gap-2 text-sm h-9 px-4"
           >
-            <Plus size={16} /> Create first rule
+            <Plus size={15} /> Create first rule
           </button>
         </div>
       ) : (
         <div className="glass-card overflow-hidden">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-white/[0.06]">
-                <th className="text-left text-xs font-medium text-slate-500 px-5 py-3.5 uppercase tracking-wider">
+              <tr className="border-b border-slate-200 bg-slate-50/80">
+                <th className="text-left text-xs font-medium text-slate-500 px-4 py-3 uppercase tracking-wider">
                   Submission Type
                 </th>
-                <th className="text-left text-xs font-medium text-slate-500 px-5 py-3.5 uppercase tracking-wider">
+                <th className="text-left text-xs font-medium text-slate-500 px-4 py-3 uppercase tracking-wider">
                   Approval Levels
                 </th>
-                <th className="text-left text-xs font-medium text-slate-500 px-5 py-3.5 uppercase tracking-wider">
+                <th className="text-left text-xs font-medium text-slate-500 px-4 py-3 uppercase tracking-wider">
                   Updated
                 </th>
-                <th className="text-right text-xs font-medium text-slate-500 px-5 py-3.5 uppercase tracking-wider">
+                <th className="text-right text-xs font-medium text-slate-500 px-4 py-3 uppercase tracking-wider">
                   Action
                 </th>
               </tr>
@@ -208,33 +203,30 @@ export default function WorkflowRulesPage() {
               {rules.map((rule) => (
                 <tr
                   key={rule.id || rule.submission_type}
-                  className="border-b border-white/[0.03] last:border-0"
+                  className="border-b border-slate-100 last:border-0 hover:bg-slate-50/50 transition-colors"
                 >
-                  <td className="px-5 py-4 text-sm font-medium text-white capitalize">
+                  <td className="px-4 py-3 text-sm font-medium text-slate-900 capitalize">
                     {rule.submission_type.replace(/_/g, ' ')}
                   </td>
-                  <td className="px-5 py-4">
-                    <div className="flex items-center gap-1.5 flex-wrap">
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-1.5 flex-wrap text-xs">
                       {rule.levels.map((role, i) => (
                         <span key={i} className="flex items-center gap-1">
-                          <span className={`role-badge role-${role}`}>
-                            <Shield size={9} />
-                            {role}
-                          </span>
+                          <span className="text-slate-700 font-medium capitalize">{role}</span>
                           {i < rule.levels.length - 1 && (
-                            <span className="text-slate-700 text-xs">→</span>
+                            <span className="text-slate-400">→</span>
                           )}
                         </span>
                       ))}
                     </div>
                   </td>
-                  <td className="px-5 py-4 text-sm text-slate-500">
+                  <td className="px-4 py-3 text-xs text-slate-500">
                     {formatDate(rule.updated_at)}
                   </td>
-                  <td className="px-5 py-4 text-right">
+                  <td className="px-4 py-3 text-right">
                     <button
                       onClick={() => openEditModal(rule)}
-                      className="text-xs text-indigo-400 hover:text-indigo-300 font-medium transition-colors"
+                      className="text-xs text-slate-700 hover:text-slate-900 font-medium transition-colors cursor-pointer"
                     >
                       Edit
                     </button>
@@ -252,34 +244,34 @@ export default function WorkflowRulesPage() {
             className="modal-content glass-card p-0"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06]">
-              <h2 className="text-lg font-semibold text-white">
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-200">
+              <h2 className="text-base font-semibold text-slate-900">
                 {editingType ? 'Edit Rule' : 'New Rule'}
               </h2>
               <button
                 onClick={closeModal}
-                className="text-slate-500 hover:text-white transition-colors"
+                className="text-slate-400 hover:text-slate-700 transition-colors"
               >
-                <X size={20} />
+                <X size={18} />
               </button>
             </div>
 
-            <div className="p-6 space-y-5">
+            <div className="p-5 space-y-4">
               {saveError && (
-                <div className="flex items-start gap-2 rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-300 animate-fade-in">
+                <div className="flex items-start gap-2 rounded-lg bg-rose-50 border border-rose-200 px-3 py-2 text-xs text-rose-700 animate-fade-in">
                   <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
                   {saveError}
                 </div>
               )}
               {saveSuccess && (
-                <div className="flex items-start gap-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-4 py-3 text-sm text-emerald-300 animate-fade-in">
+                <div className="flex items-start gap-2 rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2 text-xs text-emerald-700 animate-fade-in">
                   <CheckCircle2 size={14} className="flex-shrink-0 mt-0.5" />
                   {saveSuccess}
                 </div>
               )}
 
-              <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-slate-300 pl-1">
+              <div className="space-y-1">
+                <label className="block text-xs font-medium text-slate-700">
                   Submission Type
                 </label>
                 <input
@@ -290,26 +282,26 @@ export default function WorkflowRulesPage() {
                   }
                   disabled={!!editingType}
                   placeholder="e.g. invoice, leave_request"
-                  className="input-field w-full rounded-xl border border-white/[0.06] hover:border-white/[0.12] bg-white/[0.03] px-4 py-3 text-sm text-slate-100 placeholder-slate-500 disabled:opacity-50"
+                  className="input-field w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:border-slate-900 disabled:opacity-50"
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-slate-300 pl-1">
+                <label className="block text-xs font-medium text-slate-700">
                   Approval Levels (in order)
                 </label>
                 {editLevels.map((level, i) => (
                   <div key={i} className="flex items-center gap-2">
-                    <span className="text-xs text-slate-600 w-5 text-right flex-shrink-0">
+                    <span className="text-xs text-slate-400 w-4 text-right flex-shrink-0 font-mono">
                       {i + 1}.
                     </span>
                     <select
                       value={level}
                       onChange={(e) => changeLevel(i, e.target.value)}
-                      className="flex-1 bg-white/[0.03] border border-white/[0.06] rounded-lg px-3 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-indigo-500/50 transition-colors cursor-pointer"
+                      className="flex-1 bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-slate-900 transition-colors cursor-pointer capitalize"
                     >
                       {AVAILABLE_ROLES.map((r) => (
-                        <option key={r} value={r} className="bg-slate-900">
+                        <option key={r} value={r}>
                           {r}
                         </option>
                       ))}
@@ -319,7 +311,7 @@ export default function WorkflowRulesPage() {
                         type="button"
                         onClick={() => moveLevel(i, -1)}
                         disabled={i === 0}
-                        className="p-1 text-slate-600 hover:text-white disabled:opacity-20 transition-colors"
+                        className="p-1 text-slate-400 hover:text-slate-700 disabled:opacity-20 transition-colors"
                       >
                         <ChevronUp size={14} />
                       </button>
@@ -327,7 +319,7 @@ export default function WorkflowRulesPage() {
                         type="button"
                         onClick={() => moveLevel(i, 1)}
                         disabled={i === editLevels.length - 1}
-                        className="p-1 text-slate-600 hover:text-white disabled:opacity-20 transition-colors"
+                        className="p-1 text-slate-400 hover:text-slate-700 disabled:opacity-20 transition-colors"
                       >
                         <ChevronDown size={14} />
                       </button>
@@ -336,9 +328,9 @@ export default function WorkflowRulesPage() {
                       <button
                         type="button"
                         onClick={() => removeLevel(i)}
-                        className="text-slate-600 hover:text-red-400 transition-colors flex-shrink-0"
+                        className="text-slate-400 hover:text-rose-600 transition-colors flex-shrink-0"
                       >
-                        <Trash2 size={14} />
+                        <Trash2 size={13} />
                       </button>
                     )}
                   </div>
@@ -346,23 +338,22 @@ export default function WorkflowRulesPage() {
                 <button
                   type="button"
                   onClick={addLevel}
-                  className="flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+                  className="flex items-center gap-1 text-xs text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
                 >
-                  <Plus size={14} /> Add level
+                  <Plus size={13} /> Add level
                 </button>
               </div>
 
-              <div className="rounded-xl bg-white/[0.02] border border-white/[0.04] p-3">
-                <p className="text-xs text-slate-500 mb-2">Chain preview</p>
-                <div className="flex items-center gap-1.5 flex-wrap">
+              <div className="rounded-lg bg-slate-50 border border-slate-200 p-2.5">
+                <p className="text-[11px] text-slate-500 mb-1.5">Chain preview</p>
+                <div className="flex items-center gap-1.5 flex-wrap text-xs">
                   {editLevels.map((role, i) => (
                     <span key={i} className="flex items-center gap-1">
-                      <span className={`role-badge role-${role}`}>
-                        <Shield size={9} />
+                      <span className="text-slate-700 capitalize">
                         L{i + 1}: {role}
                       </span>
                       {i < editLevels.length - 1 && (
-                        <span className="text-slate-700 text-xs">→</span>
+                        <span className="text-slate-400">→</span>
                       )}
                     </span>
                   ))}
@@ -372,21 +363,10 @@ export default function WorkflowRulesPage() {
               <button
                 onClick={handleSave}
                 disabled={saving || !!saveSuccess}
-                className="btn-gradient w-full flex items-center justify-center gap-2 text-sm h-11"
+                className="btn-gradient w-full flex items-center justify-center gap-2 text-xs h-9"
               >
-                {saving ? (
-                  <>
-                    <Loader2 size={16} className="animate-spin" /> Saving…
-                  </>
-                ) : saveSuccess ? (
-                  <>
-                    <CheckCircle2 size={16} /> Saved
-                  </>
-                ) : (
-                  <>
-                    <Save size={16} /> Save Rule
-                  </>
-                )}
+                {saving && <Loader2 size={13} className="animate-spin" />}
+                {saveSuccess ? 'Saved' : 'Save Rule'}
               </button>
             </div>
           </div>

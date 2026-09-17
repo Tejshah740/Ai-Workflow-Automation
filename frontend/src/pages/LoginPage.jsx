@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, Loader2, Zap } from 'lucide-react';
+import { Mail, Lock, Loader2 } from 'lucide-react';
 import InputField from '../components/InputField';
 import { useAuth } from '../context/AuthContext';
 
@@ -57,33 +57,28 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12 relative">
-      <div className="bg-scene" />
-
-      <div className="w-full max-w-md relative z-10 animate-slide-up">
-        
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 mb-4 shadow-lg shadow-indigo-500/20">
-            <Zap size={26} className="text-white" />
+    <div className="min-h-screen flex items-center justify-center px-4 py-12 relative bg-[#f8fafc]">
+      <div className="w-full max-w-sm relative z-10 animate-slide-up">
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center justify-center w-10 h-10 rounded-md bg-slate-900 text-white font-bold text-sm mb-3">
+            W
           </div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">
             Welcome back
           </h1>
-          <p className="text-sm text-slate-400 mt-1.5">
-            Sign in to your workflow automation account
+          <p className="text-xs text-slate-500 mt-1">
+            Sign in to AI Workflow Automation
           </p>
         </div>
 
-        
-        <div className="glass-card p-8">
-         
+        <div className="glass-card p-6">
           {apiError && (
-            <div className="mb-5 rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-300 animate-fade-in">
+            <div className="mb-4 rounded-lg bg-rose-50 border border-rose-200 px-3 py-2 text-xs text-rose-700 animate-fade-in">
               {apiError}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
             <InputField
               id="login-email"
               label="Email"
@@ -111,12 +106,12 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="btn-gradient w-full flex items-center justify-center gap-2 text-sm h-12 mt-2"
+              className="btn-gradient w-full flex items-center justify-center gap-2 text-xs h-9 mt-2"
               id="login-submit"
             >
               {loading ? (
                 <>
-                  <Loader2 size={18} className="animate-spin" />
+                  <Loader2 size={14} className="animate-spin" />
                   Signing in…
                 </>
               ) : (
@@ -125,11 +120,11 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p className="text-center text-sm text-slate-500 mt-6">
+          <p className="text-center text-xs text-slate-500 mt-5">
             Don&apos;t have an account?{' '}
             <Link
               to="/register"
-              className="text-indigo-400 hover:text-indigo-300 font-medium transition-colors"
+              className="text-slate-900 hover:text-slate-700 underline font-medium transition-colors"
             >
               Create one
             </Link>

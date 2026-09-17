@@ -17,11 +17,11 @@ export default function InputField({
   const inputType = isPassword && showPassword ? 'text' : type;
 
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-1">
       {label && (
         <label
           htmlFor={id}
-          className="block text-sm font-medium text-slate-300 pl-1"
+          className="block text-xs font-medium text-slate-700"
         >
           {label}
         </label>
@@ -29,8 +29,8 @@ export default function InputField({
       <div className="relative group">
         {Icon && (
           <Icon
-            size={18}
-            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-indigo-400 transition-colors duration-200"
+            size={16}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-slate-700 transition-colors duration-150"
           />
         )}
         <input
@@ -41,15 +41,15 @@ export default function InputField({
           onChange={onChange}
           autoComplete={autoComplete}
           className={`
-            input-field w-full rounded-xl border bg-white/[0.03] px-4 py-3
-            text-sm text-slate-100 placeholder-slate-500
-            transition-all duration-200
-            ${Icon ? 'pl-11' : ''}
-            ${isPassword ? 'pr-11' : ''}
+            input-field w-full rounded-lg border bg-white px-3.5 py-2
+            text-xs text-slate-900 placeholder-slate-400
+            transition-colors duration-150
+            ${Icon ? 'pl-9' : ''}
+            ${isPassword ? 'pr-9' : ''}
             ${
               error
-                ? 'border-red-500/50 focus:border-red-400 focus:shadow-[0_0_0_3px_rgba(239,68,68,0.1)]'
-                : 'border-white/[0.06] hover:border-white/[0.12]'
+                ? 'border-rose-400 focus:border-rose-500 focus:shadow-[0_0_0_2px_rgba(244,63,94,0.15)]'
+                : 'border-slate-300 hover:border-slate-400 focus:border-slate-900'
             }
           `}
         />
@@ -57,16 +57,16 @@ export default function InputField({
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors duration-200 focus:outline-none"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors focus:outline-none cursor-pointer"
             tabIndex={-1}
             aria-label={showPassword ? 'Hide password' : 'Show password'}
           >
-            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
           </button>
         )}
       </div>
       {error && (
-        <p className="text-xs text-red-400 pl-1 animate-fade-in">{error}</p>
+        <p className="text-xs text-rose-600 pl-0.5 animate-fade-in">{error}</p>
       )}
     </div>
   );

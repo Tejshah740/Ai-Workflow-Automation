@@ -1,14 +1,12 @@
 import { useState, useRef, useCallback } from 'react';
 import {
   X,
-  Upload,
-  FileText,
-  Send,
   Loader2,
   Plus,
   Trash2,
   CheckCircle2,
   AlertCircle,
+  FileText,
 } from 'lucide-react';
 import { uploadDocument, submitRequest } from '../api/submissions';
 
@@ -27,7 +25,6 @@ export default function NewSubmissionModal({ isOpen, onClose, onCreated }) {
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef(null);
 
-  
   const [reqType, setReqType] = useState('');
   const [fields, setFields] = useState([{ key: '', value: '' }]);
 
@@ -72,7 +69,6 @@ export default function NewSubmissionModal({ isOpen, onClose, onCreated }) {
     if (f && validateFile(f)) setFile(f);
   }
 
- 
   function updateField(index, key, value) {
     setFields((prev) =>
       prev.map((f, i) => (i === index ? { ...f, [key]: value } : f))
@@ -124,7 +120,7 @@ export default function NewSubmissionModal({ isOpen, onClose, onCreated }) {
       onCreated?.();
       setTimeout(() => {
         handleClose();
-      }, 1200);
+      }, 1000);
     } catch (err) {
       const detail = err.response?.data?.detail;
       setError(detail || 'Submission failed. Please try again.');
@@ -147,56 +143,47 @@ export default function NewSubmissionModal({ isOpen, onClose, onCreated }) {
         className="modal-content glass-card p-0"
         onClick={(e) => e.stopPropagation()}
       >
-        
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06]">
-          <h2 className="text-lg font-semibold text-white">New Submission</h2>
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-200">
+          <h2 className="text-base font-semibold text-slate-900">New Submission</h2>
           <button
             onClick={handleClose}
-            className="text-slate-500 hover:text-white transition-colors"
+            className="text-slate-400 hover:text-slate-700 transition-colors"
           >
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
 
-        
-        <div className="tab-bar px-6">
+        <div className="tab-bar px-5">
           <button
             className={`tab-item ${activeTab === 'document' ? 'tab-active' : ''}`}
             onClick={() => { setActiveTab('document'); setError(''); setSuccess(''); }}
           >
-            <span className="flex items-center gap-1.5">
-              <Upload size={14} /> Upload Document
-            </span>
+            Document
           </button>
           <button
             className={`tab-item ${activeTab === 'request' ? 'tab-active' : ''}`}
             onClick={() => { setActiveTab('request'); setError(''); setSuccess(''); }}
           >
-            <span className="flex items-center gap-1.5">
-              <Send size={14} /> Submit Request
-            </span>
+            Request
           </button>
         </div>
 
-       
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
           {error && (
-            <div className="flex items-start gap-2.5 rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-300 animate-fade-in">
-              <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
+            <div className="flex items-start gap-2 rounded-lg bg-rose-50 border border-rose-200 px-3 py-2 text-xs text-rose-700 animate-fade-in">
+              <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
               {error}
             </div>
           )}
           {success && (
-            <div className="flex items-start gap-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-4 py-3 text-sm text-emerald-300 animate-fade-in">
-              <CheckCircle2 size={16} className="flex-shrink-0 mt-0.5" />
+            <div className="flex items-start gap-2 rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2 text-xs text-emerald-700 animate-fade-in">
+              <CheckCircle2 size={14} className="flex-shrink-0 mt-0.5" />
               {success}
             </div>
           )}
 
           {activeTab === 'document' ? (
             <>
-             
               <div
                 className={`dropzone ${dragOver ? 'drag-over' : ''} ${file ? 'has-file' : ''}`}
                 onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
@@ -212,39 +199,33 @@ export default function NewSubmissionModal({ isOpen, onClose, onCreated }) {
                   className="hidden"
                 />
                 {file ? (
-                  <div className="space-y-2">
-                    <div className="w-12 h-12 mx-auto rounded-xl bg-emerald-500/10 flex items-center justify-center">
-                      <FileText size={24} className="text-emerald-400" />
-                    </div>
-                    <p className="text-sm font-medium text-white">{file.name}</p>
+                  <div className="space-y-1.5">
+                    <FileText size={22} className="text-slate-700 mx-auto" />
+                    <p className="text-sm font-medium text-slate-900">{file.name}</p>
                     <p className="text-xs text-slate-500">{formatFileSize(file.size)}</p>
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); setFile(null); }}
-                      className="text-xs text-red-400 hover:text-red-300 transition-colors"
+                      className="text-xs text-rose-600 hover:text-rose-700 transition-colors pt-1 cursor-pointer"
                     >
                       Remove file
                     </button>
                   </div>
                 ) : (
-                  <div className="space-y-2">
-                    <div className="w-12 h-12 mx-auto rounded-xl bg-white/[0.04] flex items-center justify-center">
-                      <Upload size={24} className="text-slate-500" />
-                    </div>
-                    <p className="text-sm text-slate-300">
-                      Drop your file here, or{' '}
-                      <span className="text-indigo-400 font-medium">browse</span>
+                  <div className="space-y-1">
+                    <p className="text-sm text-slate-600">
+                      Drop file here, or{' '}
+                      <span className="text-slate-900 underline font-medium">browse</span>
                     </p>
-                    <p className="text-xs text-slate-600">
-                      {ALLOWED_EXTENSIONS.join(', ')} — Max {MAX_SIZE_MB}MB
+                    <p className="text-[11px] text-slate-400">
+                      {ALLOWED_EXTENSIONS.join(', ')} · Max {MAX_SIZE_MB}MB
                     </p>
                   </div>
                 )}
               </div>
 
-        
-              <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-slate-300 pl-1">
+              <div className="space-y-1">
+                <label className="block text-xs font-medium text-slate-700">
                   Submission type
                 </label>
                 <input
@@ -252,30 +233,28 @@ export default function NewSubmissionModal({ isOpen, onClose, onCreated }) {
                   value={docType}
                   onChange={(e) => setDocType(e.target.value)}
                   placeholder="e.g. invoice, receipt, report"
-                  className="input-field w-full rounded-xl border border-white/[0.06] hover:border-white/[0.12] bg-white/[0.03] px-4 py-3 text-sm text-slate-100 placeholder-slate-500"
+                  className="input-field w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:border-slate-900"
                 />
               </div>
             </>
           ) : (
             <>
-             
-              <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-slate-300 pl-1">
-                  Submission type <span className="text-red-400">*</span>
+              <div className="space-y-1">
+                <label className="block text-xs font-medium text-slate-700">
+                  Submission type <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={reqType}
                   onChange={(e) => setReqType(e.target.value)}
                   placeholder="e.g. expense_claim, leave_request"
-                  className="input-field w-full rounded-xl border border-white/[0.06] hover:border-white/[0.12] bg-white/[0.03] px-4 py-3 text-sm text-slate-100 placeholder-slate-500"
+                  className="input-field w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:border-slate-900"
                 />
               </div>
 
-             
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-slate-300 pl-1">
-                  Fields <span className="text-red-400">*</span>
+                <label className="block text-xs font-medium text-slate-700">
+                  Fields <span className="text-rose-500">*</span>
                 </label>
                 {fields.map((field, i) => (
                   <div key={i} className="flex items-center gap-2">
@@ -284,22 +263,22 @@ export default function NewSubmissionModal({ isOpen, onClose, onCreated }) {
                       value={field.key}
                       onChange={(e) => updateField(i, 'key', e.target.value)}
                       placeholder="Key"
-                      className="input-field flex-1 rounded-xl border border-white/[0.06] hover:border-white/[0.12] bg-white/[0.03] px-3 py-2.5 text-sm text-slate-100 placeholder-slate-500"
+                      className="input-field flex-1 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:border-slate-900"
                     />
                     <input
                       type="text"
                       value={field.value}
                       onChange={(e) => updateField(i, 'value', e.target.value)}
                       placeholder="Value"
-                      className="input-field flex-1 rounded-xl border border-white/[0.06] hover:border-white/[0.12] bg-white/[0.03] px-3 py-2.5 text-sm text-slate-100 placeholder-slate-500"
+                      className="input-field flex-1 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:border-slate-900"
                     />
                     {fields.length > 1 && (
                       <button
                         type="button"
                         onClick={() => removeField(i)}
-                        className="text-slate-600 hover:text-red-400 transition-colors flex-shrink-0"
+                        className="text-slate-400 hover:text-rose-600 transition-colors flex-shrink-0 cursor-pointer"
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={14} />
                       </button>
                     )}
                   </div>
@@ -307,42 +286,26 @@ export default function NewSubmissionModal({ isOpen, onClose, onCreated }) {
                 <button
                   type="button"
                   onClick={addField}
-                  className="flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 transition-colors mt-1"
+                  className="flex items-center gap-1 text-xs text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
                 >
-                  <Plus size={14} /> Add field
+                  <Plus size={13} /> Add field
                 </button>
               </div>
             </>
           )}
 
-         
           <button
             type="submit"
             disabled={loading || !!success}
-            className="btn-gradient w-full flex items-center justify-center gap-2 text-sm h-11"
+            className="btn-gradient w-full flex items-center justify-center gap-2 text-xs h-9 mt-2"
             id="submit-submission"
           >
-            {loading ? (
-              <>
-                <Loader2 size={16} className="animate-spin" />
-                {activeTab === 'document' ? 'Uploading…' : 'Submitting…'}
-              </>
-            ) : success ? (
-              <>
-                <CheckCircle2 size={16} />
-                Done
-              </>
-            ) : activeTab === 'document' ? (
-              <>
-                <Upload size={16} />
-                Upload Document
-              </>
-            ) : (
-              <>
-                <Send size={16} />
-                Submit Request
-              </>
-            )}
+            {loading && <Loader2 size={13} className="animate-spin" />}
+            {success
+              ? 'Done'
+              : activeTab === 'document'
+              ? 'Upload Document'
+              : 'Submit Request'}
           </button>
         </form>
       </div>
