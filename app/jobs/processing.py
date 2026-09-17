@@ -64,7 +64,7 @@ async def _process_submission(submission_id: int) -> None:
                 current["required_role"],
                 submission_id,
                 "pending_approval",
-                f"Submission #{submission_id} ({submission['submission_type']}) is awaiting your approval.",
+                "A submission is awaiting your approval.",
             )
         else:
             await notify_role(
@@ -72,8 +72,7 @@ async def _process_submission(submission_id: int) -> None:
                 "reviewer",
                 submission_id,
                 "needs_review",
-                f"Submission #{submission_id} ({submission['submission_type']}) needs review "
-                f"(confidence {overall_confidence:.2f}).",
+                "A submission requires review.",
             )
         await conn.execute(
             "INSERT INTO audit_log (submission_id, event, details) VALUES ($1, $2, $3::jsonb)",

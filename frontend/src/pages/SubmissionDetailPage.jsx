@@ -9,6 +9,10 @@ import {
   CheckCircle2,
   XCircle,
   Info,
+  FileText,
+  Calendar,
+  Clock,
+  Tag,
 } from 'lucide-react';
 import {
   getSubmission,
@@ -20,7 +24,6 @@ import {
 import { useAuth } from '../context/AuthContext';
 
 const TABS = [
-  { key: 'details', label: 'Details' },
   { key: 'ai', label: 'AI Results' },
   { key: 'audit', label: 'Audit Trail' },
 ];
@@ -33,7 +36,7 @@ export default function SubmissionDetailPage() {
   const [submission, setSubmission] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState('details');
+  const [activeTab, setActiveTab] = useState('ai');
   const [deleting, setDeleting] = useState(false);
 
   const [extraction, setExtraction] = useState(null);
@@ -100,12 +103,6 @@ export default function SubmissionDetailPage() {
     });
   }
 
-  function formatFileSize(bytes) {
-    if (!bytes) return '—';
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  }
 
   function confidenceLevel(v) {
     if (v >= 0.8) return 'high';
@@ -159,41 +156,38 @@ export default function SubmissionDetailPage() {
         </div>
       )}
 
-      <div className="glass-card p-6 sm:p-7 mb-6">
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <h1 className="text-xl font-bold text-slate-900 capitalize">
-                {sub.submission_type.replace(/_/g, ' ')}
-              </h1>
-              <span className="text-sm font-mono text-slate-400">
-                #{sub.id}
-              </span>
+      <div className="glass-card p-5 sm:p-6 mb-6">
+        <div className="flex items-center justify-between gap-3 pb-4 sm:pb-5 border-b border-slate-100">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-sm shadow-xs flex-shrink-0">
+              <FileText size={18} className="sm:w-5 sm:h-5" />
             </div>
-
-            <div className="flex items-center gap-2 mt-2 flex-wrap">
-              <span className={`status-indicator status-${sub.status}`}>
-                <span className="status-dot" />
-                {statusLabel(sub.status)}
-              </span>
-              <span className="text-xs text-slate-500 capitalize">
-                · {sub.channel}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2 mt-3 text-xs text-slate-500">
-              <span>Created {formatDate(sub.created_at)}</span>
-              <span>·</span>
-              <span>Updated {formatDate(sub.updated_at)}</span>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-lg sm:text-xl font-bold text-slate-900 capitalize tracking-tight truncate">
+                  {sub.submission_type.replace(/_/g, ' ')}
+                </h1>
+                <span className={`status-indicator status-${sub.status} flex-shrink-0`}>
+                  <span className="status-dot" />
+                  {statusLabel(sub.status)}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5 truncate">
+                {sub.original_filename ? (
+                  <span className="font-mono text-slate-600">{sub.original_filename}</span>
+                ) : (
+                  <span>Intake channel: <strong className="capitalize text-slate-700 font-medium">{sub.channel}</strong></span>
+                )}
+              </p>
             </div>
           </div>
 
-          <div className="flex gap-2 flex-shrink-0">
+          <div className="flex items-center gap-2 flex-shrink-0">
             {canDelete && (
               <button
                 onClick={handleDelete}
                 disabled={deleting}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-rose-200 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 transition-colors disabled:opacity-50"
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-medium text-slate-600 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 transition-colors disabled:opacity-50 cursor-pointer"
                 id="delete-btn"
               >
                 {deleting ? (
@@ -201,9 +195,39 @@ export default function SubmissionDetailPage() {
                 ) : (
                   <Trash2 size={13} />
                 )}
-                Delete
+                <span>Delete</span>
               </button>
             )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 text-xs">
+          <div>
+            <span className="text-slate-400 block mb-1">Status</span>
+            <span className="font-medium text-slate-800 capitalize">
+              {statusLabel(sub.status)}
+            </span>
+          </div>
+          <div>
+            <span className="text-slate-400 block mb-1">Channel</span>
+            <span className="font-medium text-slate-800 capitalize flex items-center gap-1.5">
+              <Tag size={12} className="text-slate-400" />
+              {sub.channel}
+            </span>
+          </div>
+          <div>
+            <span className="text-slate-400 block mb-1">Created At</span>
+            <span className="font-medium text-slate-800 flex items-center gap-1.5">
+              <Calendar size={12} className="text-slate-400" />
+              {formatDate(sub.created_at)}
+            </span>
+          </div>
+          <div>
+            <span className="text-slate-400 block mb-1">Last Updated</span>
+            <span className="font-medium text-slate-800 flex items-center gap-1.5">
+              <Clock size={12} className="text-slate-400" />
+              {formatDate(sub.updated_at)}
+            </span>
           </div>
         </div>
       </div>
@@ -222,7 +246,6 @@ export default function SubmissionDetailPage() {
         </div>
 
         <div className="p-5 sm:p-6">
-          {activeTab === 'details' && <DetailsTab sub={sub} formatFileSize={formatFileSize} />}
           {activeTab === 'ai' && (
             <AITab
               extraction={extraction}
@@ -245,73 +268,6 @@ export default function SubmissionDetailPage() {
   );
 }
 
-function DetailsTab({ sub, formatFileSize }) {
-  if (sub.channel === 'document') {
-    return (
-      <div className="space-y-4 animate-fade-in">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">
-          Document Information
-        </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <InfoRow label="Filename" value={sub.original_filename || '—'} />
-          <InfoRow label="Content Type" value={sub.content_type || '—'} />
-          <InfoRow
-            label="File Size"
-            value={formatFileSize(sub.file_size_bytes)}
-          />
-          <InfoRow label="Submitter ID" value={`#${sub.submitter_id}`} />
-        </div>
-      </div>
-    );
-  }
-
-  const fields = sub.request_fields || {};
-  const entries = Object.entries(fields);
-
-  return (
-    <div className="space-y-4 animate-fade-in">
-      <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">
-        Request Fields
-      </h3>
-      {entries.length === 0 ? (
-        <p className="text-sm text-slate-500">No fields submitted.</p>
-      ) : (
-        <div className="rounded-lg border border-slate-200 overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50/80">
-                <th className="text-left text-xs font-medium text-slate-500 px-4 py-2 uppercase tracking-wider w-1/3">
-                  Field
-                </th>
-                <th className="text-left text-xs font-medium text-slate-500 px-4 py-2 uppercase tracking-wider">
-                  Value
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {entries.map(([key, val]) => (
-                <tr
-                  key={key}
-                  className="border-b border-slate-100 last:border-0"
-                >
-                  <td className="px-4 py-2.5 text-sm font-medium text-slate-900 font-mono">
-                    {key}
-                  </td>
-                  <td className="px-4 py-2.5 text-sm text-slate-600 break-all">
-                    {typeof val === 'object' ? JSON.stringify(val) : String(val)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-      <div className="mt-3">
-        <InfoRow label="Submitter ID" value={`#${sub.submitter_id}`} />
-      </div>
-    </div>
-  );
-}
 
 function AITab({ extraction, validation, loading, error, confidenceLevel }) {
   if (loading) {

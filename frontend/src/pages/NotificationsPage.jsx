@@ -81,6 +81,32 @@ export default function NotificationsPage() {
     }
   }
 
+  function cleanNotificationMessage(msg, event) {
+    if (!msg) return { text: '' };
+    if (event === 'submission_approved' || /approved/i.test(msg)) {
+      return { text: 'Your submission was approved.' };
+    }
+    if (event === 'submission_rejected' || /rejected/i.test(msg)) {
+      const match = msg.match(/(?:Reason|Comment):\s*(.+)$/i);
+      return {
+        text: 'Your submission was rejected.',
+        reason: match ? match[1].trim() : null,
+      };
+    }
+    if (event === 'needs_review' || /needs review/i.test(msg)) {
+      return { text: 'A submission requires review.' };
+    }
+    if (event === 'pending_approval' || /awaiting.*approval/i.test(msg)) {
+      return { text: 'A submission is awaiting your approval.' };
+    }
+    return {
+      text: msg
+        .replace(/#\d+\s*(?:\([^)]*\))?/g, '')
+        .replace(/\s{2,}/g, ' ')
+        .trim(),
+    };
+  }
+
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 animate-slide-up">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
@@ -88,14 +114,14 @@ export default function NotificationsPage() {
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
             Notifications
           </h1>
-          <p className="text-slate-500 text-sm mt-0.5">
-            Workflow alerts, status updates, and required actions
+          <p className="text-sm text-slate-500 mt-0.5">
+            Real-time workflow and approval status alerts
           </p>
         </div>
 
-        {unreadCount > 0 && (
+        {stats.unread > 0 && (
           <button
-            id="notifications-mark-all-read-btn"
+            id="mark-all-read-btn"
             onClick={markAllAsRead}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 transition-colors self-start cursor-pointer"
           >
@@ -230,28 +256,33 @@ export default function NotificationsPage() {
               >
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                   <div className="flex items-start gap-2.5 min-w-0">
-                    <span className={`w-1.5 h-1.5 rounded-full ${meta.dot} mt-2 flex-shrink-0`} />
-
                     <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2 mb-1">
-                        <span className="text-xs font-medium text-slate-900">
+                      <div className="flex flex-wrap items-center gap-2 mb-2">
+                        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-medium border ${meta.badge || 'bg-slate-50 text-slate-700 border-slate-200'}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} />
                           {meta.label}
                         </span>
-
-                        {item.submission_id && (
-                          <span className="text-[11px] font-mono text-slate-400">
-                            #{item.submission_id}
-                          </span>
-                        )}
 
                         <span className="text-[11px] text-slate-400 ml-auto">
                           {formatTimeAgo(item.created_at)}
                         </span>
                       </div>
 
-                      <p className="text-xs text-slate-600 leading-relaxed">
-                        {item.message}
-                      </p>
+                      {(() => {
+                        const cleaned = cleanNotificationMessage(item.message, item.event);
+                        return (
+                          <div className="space-y-1.5">
+                            <p className="text-xs text-slate-800 font-medium leading-relaxed">
+                              {cleaned.text}
+                            </p>
+                            {cleaned.reason && (
+                              <p className="text-xs text-rose-700 bg-rose-50/70 border border-rose-200/60 rounded px-2.5 py-1.5 inline-block">
+                                <span className="font-semibold text-rose-800">Reason:</span> {cleaned.reason}
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
 

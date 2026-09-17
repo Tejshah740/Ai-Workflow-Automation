@@ -191,61 +191,109 @@ export default function WorkflowRulesPage() {
           </button>
         </div>
       ) : (
-        <div className="glass-card overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50/80">
-                <th className="text-left text-xs font-medium text-slate-500 px-4 py-3 uppercase tracking-wider">
-                  Submission Type
-                </th>
-                <th className="text-left text-xs font-medium text-slate-500 px-4 py-3 uppercase tracking-wider">
-                  Approval Levels
-                </th>
-                <th className="text-left text-xs font-medium text-slate-500 px-4 py-3 uppercase tracking-wider">
-                  Updated
-                </th>
-                <th className="text-right text-xs font-medium text-slate-500 px-4 py-3 uppercase tracking-wider">
-                  Action
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {rules.map((rule) => (
-                <tr
-                  key={rule.id || rule.submission_type}
-                  className="border-b border-slate-100 last:border-0 hover:bg-slate-50/50 transition-colors"
-                >
-                  <td className="px-4 py-3 text-sm font-medium text-slate-900 capitalize">
-                    {rule.submission_type.replace(/_/g, ' ')}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1.5 flex-wrap text-xs">
-                      {rule.levels.map((role, i) => (
-                        <span key={i} className="flex items-center gap-1">
-                          <span className="text-slate-700 font-medium capitalize">{role}</span>
-                          {i < rule.levels.length - 1 && (
-                            <span className="text-slate-400">→</span>
-                          )}
-                        </span>
-                      ))}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-xs text-slate-500">
-                    {formatDate(rule.updated_at)}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={() => openEditModal(rule)}
-                      className="text-xs text-slate-700 hover:text-slate-900 font-medium transition-colors cursor-pointer"
+        <>
+          <div className="hidden sm:block glass-card overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[560px]">
+                <thead>
+                  <tr className="border-b border-slate-200 bg-slate-50/80">
+                    <th className="text-left text-xs font-semibold text-slate-600 px-4 py-3 uppercase tracking-wider">
+                      Submission Type
+                    </th>
+                    <th className="text-left text-xs font-semibold text-slate-600 px-4 py-3 uppercase tracking-wider">
+                      Approval Levels
+                    </th>
+                    <th className="text-left text-xs font-semibold text-slate-600 px-4 py-3 uppercase tracking-wider">
+                      Updated
+                    </th>
+                    <th className="text-right text-xs font-semibold text-slate-600 px-4 py-3 uppercase tracking-wider">
+                      Action
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rules.map((rule) => (
+                    <tr
+                      key={rule.id || rule.submission_type}
+                      className="border-b border-slate-100 last:border-0 hover:bg-slate-50/50 transition-colors"
                     >
-                      Edit
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                      <td className="px-4 py-3 text-sm font-medium text-slate-900 capitalize whitespace-nowrap">
+                        {rule.submission_type.replace(/_/g, ' ')}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1.5 flex-nowrap whitespace-nowrap text-xs">
+                          {rule.levels.map((role, i) => (
+                            <span key={i} className="inline-flex items-center gap-1">
+                              <span className="px-2 py-0.5 rounded bg-slate-100 border border-slate-200/60 text-slate-700 font-medium capitalize">
+                                {role}
+                              </span>
+                              {i < rule.levels.length - 1 && (
+                                <span className="text-slate-400">→</span>
+                              )}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">
+                        {formatDate(rule.updated_at)}
+                      </td>
+                      <td className="px-4 py-3 text-right whitespace-nowrap">
+                        <button
+                          onClick={() => openEditModal(rule)}
+                          className="text-xs text-slate-700 hover:text-slate-900 font-medium px-2.5 py-1 rounded border border-slate-200 bg-white hover:bg-slate-50 transition-colors cursor-pointer"
+                        >
+                          Edit
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="sm:hidden space-y-3">
+            {rules.map((rule) => (
+              <div
+                key={rule.id || rule.submission_type}
+                className="glass-card p-4 space-y-3"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold text-slate-900 capitalize">
+                    {rule.submission_type.replace(/_/g, ' ')}
+                  </span>
+                  <button
+                    onClick={() => openEditModal(rule)}
+                    className="text-xs text-slate-700 hover:text-slate-900 font-medium px-2.5 py-1 rounded border border-slate-200 bg-white hover:bg-slate-50 transition-colors cursor-pointer"
+                  >
+                    Edit
+                  </button>
+                </div>
+
+                <div>
+                  <span className="text-[11px] text-slate-400 block mb-1.5 font-medium">Approval Levels</span>
+                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs whitespace-nowrap">
+                    {rule.levels.map((role, i) => (
+                      <span key={i} className="inline-flex items-center gap-1.5 flex-shrink-0">
+                        <span className="px-2 py-0.5 rounded bg-slate-100 border border-slate-200/60 text-slate-700 font-medium capitalize">
+                          {role}
+                        </span>
+                        {i < rule.levels.length - 1 && (
+                          <span className="text-slate-400 text-xs">→</span>
+                        )}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="text-[11px] text-slate-400 pt-2 border-t border-slate-100 flex items-center justify-between">
+                  <span>Updated</span>
+                  <span className="text-slate-600 font-medium">{formatDate(rule.updated_at)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
       )}
 
       {modalOpen &&

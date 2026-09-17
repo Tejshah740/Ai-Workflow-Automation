@@ -6,6 +6,10 @@ import {
   XCircle,
   CheckCircle2,
   AlertCircle,
+  FileText,
+  Calendar,
+  Clock,
+  Tag,
 } from 'lucide-react';
 import { getWorkflowStatus, resolveReview, approveSubmission, rejectSubmission } from '../api/workflow';
 import { useAuth } from '../context/AuthContext';
@@ -135,29 +139,60 @@ export default function WorkflowDetailPage() {
         <ArrowLeft size={16} /> Back to queue
       </button>
 
-      <div className="glass-card p-6 sm:p-7 mb-6">
-        <div>
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <h1 className="text-xl font-bold text-slate-900 capitalize">
-              {sub.submission_type?.replace(/_/g, ' ') || 'Unknown'}
-            </h1>
-            <span className="text-sm font-mono text-slate-400">#{sub.id}</span>
+      <div className="glass-card p-5 sm:p-6 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-100">
+          <div className="flex items-center gap-3.5 min-w-0">
+            <div className="w-11 h-11 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-sm shadow-xs flex-shrink-0">
+              <FileText size={20} />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <h1 className="text-xl font-bold text-slate-900 capitalize tracking-tight">
+                  {sub.submission_type?.replace(/_/g, ' ') || 'Unknown'}
+                </h1>
+                <span className={`status-indicator status-${sub.status}`}>
+                  <span className="status-dot" />
+                  {statusLabel(sub.status)}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5 truncate">
+                {sub.original_filename ? (
+                  <span className="font-mono text-slate-600">{sub.original_filename}</span>
+                ) : (
+                  <span>Intake channel: <strong className="capitalize text-slate-700 font-medium">{sub.channel}</strong></span>
+                )}
+              </p>
+            </div>
           </div>
+        </div>
 
-          <div className="flex items-center gap-2 mt-2 flex-wrap">
-            <span className={`status-indicator status-${sub.status}`}>
-              <span className="status-dot" />
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 text-xs">
+          <div>
+            <span className="text-slate-400 block mb-1">Workflow Status</span>
+            <span className="font-medium text-slate-800 capitalize">
               {statusLabel(sub.status)}
             </span>
-            <span className="text-xs text-slate-500 capitalize">
-              · {sub.channel}
+          </div>
+          <div>
+            <span className="text-slate-400 block mb-1">Channel</span>
+            <span className="font-medium text-slate-800 capitalize flex items-center gap-1.5">
+              <Tag size={12} className="text-slate-400" />
+              {sub.channel}
             </span>
           </div>
-
-          <div className="flex items-center gap-2 mt-3 text-xs text-slate-500 flex-wrap">
-            <span>Created {formatDate(sub.created_at)}</span>
-            <span>·</span>
-            <span>Updated {formatDate(sub.updated_at)}</span>
+          <div>
+            <span className="text-slate-400 block mb-1">Submitted On</span>
+            <span className="font-medium text-slate-800 flex items-center gap-1.5">
+              <Calendar size={12} className="text-slate-400" />
+              {formatDate(sub.created_at)}
+            </span>
+          </div>
+          <div>
+            <span className="text-slate-400 block mb-1">Last Updated</span>
+            <span className="font-medium text-slate-800 flex items-center gap-1.5">
+              <Clock size={12} className="text-slate-400" />
+              {formatDate(sub.updated_at)}
+            </span>
           </div>
         </div>
       </div>

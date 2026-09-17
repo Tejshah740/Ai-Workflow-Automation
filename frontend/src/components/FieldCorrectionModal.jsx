@@ -108,7 +108,7 @@ export default function FieldCorrectionModal({
 
         <form onSubmit={handleSubmit} className="p-5 space-y-4 overflow-y-auto">
           <p className="text-xs text-slate-500">
-            Update or add fields for submission #{submissionId}.
+            Update or add extracted fields for this submission.
           </p>
 
           {error && (

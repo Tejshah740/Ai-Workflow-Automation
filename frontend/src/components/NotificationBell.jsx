@@ -14,32 +14,38 @@ export function getEventMeta(event) {
     case 'needs_review':
       return {
         label: 'Review Required',
-        dot: 'bg-amber-400',
+        dot: 'bg-amber-500',
+        badge: 'bg-amber-50 text-amber-700 border-amber-200',
       };
     case 'pending_approval':
       return {
         label: 'Approval Pending',
-        dot: 'bg-purple-400',
+        dot: 'bg-purple-500',
+        badge: 'bg-purple-50 text-purple-700 border-purple-200',
       };
     case 'submission_approved':
       return {
         label: 'Approved',
-        dot: 'bg-emerald-400',
+        dot: 'bg-emerald-500',
+        badge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
       };
     case 'submission_rejected':
       return {
         label: 'Rejected',
-        dot: 'bg-rose-400',
+        dot: 'bg-rose-500',
+        badge: 'bg-rose-50 text-rose-700 border-rose-200',
       };
     case 'submission_failed':
       return {
         label: 'Failed',
-        dot: 'bg-red-400',
+        dot: 'bg-red-500',
+        badge: 'bg-red-50 text-red-700 border-red-200',
       };
     default:
       return {
         label: 'Notification',
         dot: 'bg-slate-400',
+        badge: 'bg-slate-50 text-slate-700 border-slate-200',
       };
   }
 }
@@ -94,6 +100,27 @@ export default function NotificationBell() {
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen]);
+
+  function cleanNotificationMessage(msg, event) {
+    if (!msg) return '';
+    if (event === 'submission_approved' || /approved/i.test(msg)) {
+      return 'Your submission was approved.';
+    }
+    if (event === 'submission_rejected' || /rejected/i.test(msg)) {
+      const match = msg.match(/(?:Reason|Comment):\s*(.+)$/i);
+      return match ? `Your submission was rejected. Reason: ${match[1]}` : 'Your submission was rejected.';
+    }
+    if (event === 'needs_review' || /needs review/i.test(msg)) {
+      return 'A submission requires review.';
+    }
+    if (event === 'pending_approval' || /awaiting.*approval/i.test(msg)) {
+      return 'A submission is awaiting your approval.';
+    }
+    return msg
+      .replace(/#\d+\s*(?:\([^)]*\))?/g, '')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+  }
 
   const filteredNotifications = notifications.filter((n) => {
     if (tab === 'unread') return !n.read_at;
@@ -161,17 +188,16 @@ export default function NotificationBell() {
 
             {unreadCount > 0 && (
               <button
-                id="notification-mark-all-read-btn"
+                id="popover-mark-all-read"
                 onClick={markAllAsRead}
-                className="flex items-center gap-1 text-[11px] text-slate-500 hover:text-slate-900 transition-colors cursor-pointer"
+                className="text-[11px] text-slate-500 hover:text-slate-900 font-medium transition-colors cursor-pointer"
               >
-                <CheckCheck size={12} />
                 Mark all read
               </button>
             )}
           </div>
 
-          <div className="flex px-4 border-b border-slate-200">
+          <div className="flex border-b border-slate-200 px-4 gap-4 text-xs">
             <button
               id="tab-all-notifications"
               onClick={() => setTab('all')}
@@ -223,27 +249,20 @@ export default function NotificationBell() {
                         : 'hover:bg-slate-50'
                     }`}
                   >
-                    <span className={`w-1.5 h-1.5 rounded-full ${meta.dot} mt-1.5 flex-shrink-0`} />
-
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 mb-0.5">
-                        <span className="text-[11px] font-medium text-slate-900">
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium border ${meta.badge || 'bg-slate-50 text-slate-700 border-slate-200'}`}>
+                          <span className={`w-1 h-1 rounded-full ${meta.dot}`} />
                           {meta.label}
                         </span>
-
-                        {item.submission_id && (
-                          <span className="text-[10px] font-mono text-slate-400">
-                            #{item.submission_id}
-                          </span>
-                        )}
 
                         <span className="ml-auto text-[10px] text-slate-400">
                           {formatTimeAgo(item.created_at)}
                         </span>
                       </div>
 
-                      <p className="text-xs text-slate-600 line-clamp-2 leading-normal">
-                        {item.message}
+                      <p className="text-xs text-slate-700 line-clamp-2 leading-normal">
+                        {cleanNotificationMessage(item.message, item.event)}
                       </p>
                     </div>
 

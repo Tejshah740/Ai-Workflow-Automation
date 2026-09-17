@@ -210,7 +210,7 @@ The frontend application will be live at [http://localhost:5173](http://localhos
 2. **AI Processing**: An RQ worker asynchronously executes OCR, classification, and metadata extraction.
 3. **Validation & Anomaly Detection**: Validates schema rules, checks for 24h duplicates, and flags statistical outliers.
 4. **Initial Routing & Notifications**:
-   - High confidence (`>= 0.6`) + valid fields: moves to `pending_approval`, generates approval chain, and dispatches notification/email to the level 1 approvers.
+   - High confidence (`>= 0.6`) + valid fields: moves to `pending_approval`, generates approval chain, and dispatches in-app notification to the level 1 approvers.
    - Low confidence (`< 0.6`) OR validation issues: moves to `needs_review` and notifies reviewers.
    - Failures notify the submitter and admins.
 5. **Human Review**:
@@ -220,7 +220,7 @@ The frontend application will be live at [http://localhost:5173](http://localhos
 6. **Multi-Level Approval**:
    - Approvers view their actionable queue via `GET /api/workflow/queue`.
    - Each level is approved in sequential order (`POST /api/workflow/{submission_id}/approve`), notifying the next role in chain.
-   - Once all levels approve, the submission reaches `approved` and the submitter is notified via email and in-app message.
+   - Once all levels approve, the submission reaches `approved` and the submitter is notified via in-app message.
    - Any approver or reviewer can reject (`POST /api/workflow/{submission_id}/reject`), notifying the submitter.
 
 ## API Endpoints
@@ -290,3 +290,127 @@ Expected Response:
 ```json
 {"status": "ok"}
 ```
+
+## Production Deployment & Operations
+
+### 1. Production Architecture Overview
+
+- **FastAPI Backend**: Run behind a production WSGI/ASGI manager using Gunicorn with Uvicorn worker classes (`uvicorn.workers.UvicornWorker`).
+- **Asynchronous Workers**: Run one or more RQ worker instances managed by systemd or container orchestrators (Docker Compose, Kubernetes, AWS ECS).
+- **PostgreSQL**: Managed PostgreSQL 15+ instance with connection pooling and automated backups.
+- **Redis**: Persistent Redis instance (AOF enabled) for reliable background task queues.
+- **Reverse Proxy**: Nginx or Caddy terminating TLS/SSL, serving static frontend assets, and proxying `/api` traffic to the backend.
+
+### 2. Production ASGI Server Configuration
+
+In production, avoid running with `--reload`. Use Gunicorn with Uvicorn workers:
+
+```bash
+# Recommended worker count: (2 x $NUM_CORES) + 1
+gunicorn app.main:app \
+  --workers 4 \
+  --worker-class uvicorn.workers.UvicornWorker \
+  --bind 0.0.0.0:8000 \
+  --timeout 120 \
+  --graceful-timeout 30 \
+  --access-logfile - \
+  --error-logfile -
+```
+
+### 3. Scaling Background Workers
+
+Scale worker processes across CPU cores according to document intake throughput:
+
+```bash
+# Start multiple dedicated worker processes
+rq worker --url redis://redis:6379/0 --name worker-1 default &
+rq worker --url redis://redis:6379/0 --name worker-2 default &
+```
+
+Monitor queue depth and worker health:
+```bash
+rq info --url redis://redis:6379/0
+```
+
+### 4. Production Nginx Configuration
+
+Example Nginx virtual host configuration with TLS termination, HTTP/2, security headers, and reverse proxying:
+
+```nginx
+server {
+    listen 80;
+    server_name workflows.example.com;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name workflows.example.com;
+
+    ssl_certificate /etc/letsencrypt/live/workflows.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/workflows.example.com/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+
+    # Security Headers
+    add_header X-Frame-Options "DENY" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://workflows.example.com;" always;
+
+    client_max_body_size 10M;
+
+    # Frontend Single Page App
+    root /var/www/workflows-frontend/dist;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Backend API & Health Endpoints
+    location ~ ^/(api|health|docs|openapi.json|redoc) {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 120s;
+        proxy_connect_timeout 10s;
+    }
+}
+```
+
+### 5. Production Security Checklist
+
+- [ ] **JWT Secret Key**: Generate a 256-bit cryptographic secret (`openssl rand -hex 32`) and set `JWT_SECRET_KEY` in environment. Never commit secrets to source control.
+- [ ] **CORS Restrictions**: Set `CORS_ORIGINS` strictly to your production domain (e.g. `["https://workflows.example.com"]`), never wildcard `*`.
+- [ ] **Database Credentials**: Use strong passwords and enforce SSL connections (`sslmode=require` in `DATABASE_URL`).
+- [ ] **Upload Quotas & File Validation**: Keep `MAX_UPLOAD_SIZE_BYTES=10485760` (10MB) and verify MIME types.
+- [ ] **Non-Root Execution**: Ensure containers and systemd services run under unprivileged service users.
+
+### 6. Database Backups & Maintenance
+
+- **Automated Nightly Backup**:
+  ```bash
+  pg_dump -Fc -d workflow_db -h localhost -U workflow_user > /backups/workflow_db_$(date +%F).dump
+  ```
+- **Restoring from Backup**:
+  ```bash
+  pg_restore -d workflow_db -c -h localhost -U workflow_user /backups/workflow_db_YYYY-MM-DD.dump
+  ```
+- **Document Storage Backups**: Sync `./uploads` to redundant S3 or object storage via cron.
+
+### 7. Troubleshooting & Common Issues
+
+| Issue | Root Cause | Solution |
+|---|---|---|
+| `PDFInfoNotInstalledError` / `TesseractNotFoundError` | Missing system OCR/Poppler binaries on host | Install `tesseract-ocr` and `poppler-utils` via apt/brew, or use Docker container. |
+| Redis Connection Refused | Redis daemon stopped or invalid `REDIS_URL` | Check Redis service status (`systemctl status redis` or `docker compose ps`). |
+| Database connection timeouts | PostgreSQL connection limit reached | Ensure connections are properly released back to pool in `app.db`. |
+| Uploaded file 413 Payload Too Large | File size exceeds `MAX_UPLOAD_SIZE_BYTES` or Nginx `client_max_body_size` | Adjust limit in both `.env` and `nginx.conf`. |
+

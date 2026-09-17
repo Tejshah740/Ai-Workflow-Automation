@@ -196,7 +196,7 @@ async def approve_submission(
             submission["submitter_id"],
             submission_id,
             "submission_approved",
-            f"Your submission #{submission_id} ({submission['submission_type']}) was approved.",
+            "Your submission was approved.",
         )
     else:
         final_status = "pending_approval"
@@ -205,8 +205,7 @@ async def approve_submission(
             next_level["required_role"],
             submission_id,
             "pending_approval",
-            f"Submission #{submission_id} ({submission['submission_type']}) is awaiting your approval "
-            f"(level {next_level['level']}).",
+            f"A submission is awaiting your approval (level {next_level['level']}).",
         )
 
     await log_audit_event(
@@ -255,8 +254,8 @@ async def reject_submission(
         submission["submitter_id"],
         submission_id,
         "submission_rejected",
-        f"Your submission #{submission_id} ({submission['submission_type']}) was rejected."
-        + (f" Comment: {payload.comment}" if payload.comment else ""),
+        "Your submission was rejected."
+        + (f" Reason: {payload.comment}" if payload.comment else ""),
     )
     await log_audit_event(
         conn,

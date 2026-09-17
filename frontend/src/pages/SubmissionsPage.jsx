@@ -213,13 +213,11 @@ export default function SubmissionsPage() {
         </div>
       ) : (
         <>
-          <div className="hidden md:block glass-card overflow-hidden">
-            <table className="w-full">
+          <div className="hidden sm:block glass-card overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[680px]">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50/80">
-                  <th className="text-left text-xs font-semibold text-slate-600 px-4 py-3 uppercase tracking-wider">
-                    ID
-                  </th>
                   <th className="text-left text-xs font-semibold text-slate-600 px-4 py-3 uppercase tracking-wider">
                     Type
                   </th>
@@ -247,9 +245,6 @@ export default function SubmissionsPage() {
                     onClick={() => navigate(`/submissions/${sub.id}`)}
                     className="border-b border-slate-100 hover:bg-slate-50/60 cursor-pointer transition-colors"
                   >
-                    <td className="px-4 py-3 text-sm font-mono text-slate-500">
-                      #{sub.id}
-                    </td>
                     <td className="px-4 py-3 text-sm text-slate-900 font-medium capitalize">
                       {sub.submission_type.replace(/_/g, ' ')}
                     </td>
@@ -296,9 +291,10 @@ export default function SubmissionsPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
 
-          <div className="md:hidden space-y-3">
+          <div className="sm:hidden space-y-3">
             {submissions.map((sub) => (
               <div
                 key={sub.id}
@@ -309,9 +305,6 @@ export default function SubmissionsPage() {
                   <div>
                     <p className="text-sm font-medium text-slate-900 capitalize">
                       {sub.submission_type.replace(/_/g, ' ')}
-                    </p>
-                    <p className="text-xs text-slate-500 font-mono mt-0.5">
-                      #{sub.id}
                     </p>
                   </div>
                   <span className={`status-indicator status-${sub.status}`}>
