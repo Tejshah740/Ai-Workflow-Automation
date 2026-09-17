@@ -49,7 +49,7 @@ An asynchronous workflow automation system built with FastAPI, PostgreSQL, Redis
 │   │   ├── auth.py               # Auth endpoints (register, login, me, promote)
 │   │   ├── dashboard.py          # Metrics, reports, and analytics endpoints
 │   │   ├── notifications.py      # Notifications endpoints (list, mark read, mark all read)
-│   │   ├── submissions.py        # Submission endpoints (intake, downloads, extractions, validations)
+│   │   ├── submissions.py        # Submission endpoints (intake, extractions, validations)
 │   │   └── workflow.py           # Workflow engine (rules, queues, field corrections, approve/reject)
 │   ├── services/
 │   │   ├── __init__.py
@@ -247,11 +247,10 @@ The frontend application will be live at [http://localhost:5173](http://localhos
 | `POST` | `/api/submissions/requests` | Submit structured JSON form/request payload and enqueue processing | Bearer Token |
 | `GET` | `/api/submissions` | List submissions (users see own; admins see all; supports filter by status/channel) | Bearer Token |
 | `GET` | `/api/submissions/{submission_id}` | Get submission details by ID | Bearer Token (Owner or Admin) |
-| `GET` | `/api/submissions/{submission_id}/download` | Download uploaded document file | Bearer Token (Owner or Admin) |
 | `GET` | `/api/submissions/{submission_id}/extraction` | Get latest AI extraction & confidence results for a submission | Bearer Token (Owner or Admin) |
 | `GET` | `/api/submissions/{submission_id}/validation` | Get latest validation & anomaly detection results for a submission | Bearer Token (Owner or Admin) |
 | `GET` | `/api/submissions/{submission_id}/audit` | View complete chronological audit log trail for a submission | Bearer Token (Owner, Reviewer, Approver, Admin) |
-| `DELETE` | `/api/submissions/{submission_id}` | Delete submission (only allowed if status is `submitted`) | Bearer Token (Owner or Admin) |
+| `DELETE` | `/api/submissions/{submission_id}` | Delete submission and associated records | Bearer Token (Owner or Admin) |
 
 ### Workflow Engine (`/api/workflow`)
 

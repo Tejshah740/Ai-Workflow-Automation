@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
-  Download,
   Trash2,
   Loader2,
   User,
@@ -13,7 +12,6 @@ import {
 } from 'lucide-react';
 import {
   getSubmission,
-  downloadSubmission,
   deleteSubmission,
   getAuditTrail,
   getExtraction,
@@ -37,7 +35,6 @@ export default function SubmissionDetailPage() {
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('details');
   const [deleting, setDeleting] = useState(false);
-  const [downloading, setDownloading] = useState(false);
 
   const [extraction, setExtraction] = useState(null);
   const [validation, setValidation] = useState(null);
@@ -92,16 +89,6 @@ export default function SubmissionDetailPage() {
     }
   }
 
-  async function handleDownload() {
-    setDownloading(true);
-    try {
-      await downloadSubmission(id, submission?.original_filename);
-    } catch {
-      setError('Download failed.');
-    } finally {
-      setDownloading(false);
-    }
-  }
 
   function formatDate(iso) {
     return new Date(iso).toLocaleDateString('en-US', {
@@ -155,7 +142,6 @@ export default function SubmissionDetailPage() {
 
   const sub = submission;
   const canDelete = user?.role === 'admin' || sub.submitter_id === user?.id || !sub.submitter_id;
-  const canDownload = sub.channel === 'document';
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 animate-slide-up">
@@ -203,21 +189,6 @@ export default function SubmissionDetailPage() {
           </div>
 
           <div className="flex gap-2 flex-shrink-0">
-            {canDownload && (
-              <button
-                onClick={handleDownload}
-                disabled={downloading}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 text-xs text-slate-700 hover:text-slate-900 hover:bg-slate-50 transition-colors disabled:opacity-50"
-                id="download-btn"
-              >
-                {downloading ? (
-                  <Loader2 size={13} className="animate-spin" />
-                ) : (
-                  <Download size={13} />
-                )}
-                Download
-              </button>
-            )}
             {canDelete && (
               <button
                 onClick={handleDelete}

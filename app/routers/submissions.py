@@ -2,7 +2,6 @@ from pathlib import Path
 
 import asyncpg
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
-from fastapi.responses import FileResponse
 from rq import Callback, Retry
 
 from app.config import settings
@@ -117,30 +116,6 @@ async def get_one_submission(
     return dict(submission)
 
 
-@router.get("/{submission_id}/download")
-async def download_submission(
-    submission_id: int,
-    conn: asyncpg.Connection = Depends(get_db),
-    user=Depends(get_current_user),
-):
-    submission = await get_submission(conn, submission_id)
-    if submission is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Submission not found")
-    _ensure_owner_or_admin(submission, user)
-    if submission["channel"] != "document":
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Submission has no file")
-
-    file_path = Path(settings.upload_dir) / submission["stored_filename"]
-    if not file_path.exists():
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found on disk")
-
-    return FileResponse(
-        file_path,
-        media_type=submission["content_type"] or "application/octet-stream",
-        filename=submission["original_filename"],
-    )
-
-
 @router.delete("/{submission_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_one_submission(
     submission_id: int,
@@ -151,11 +126,6 @@ async def delete_one_submission(
     if submission is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Submission not found")
     _ensure_owner_or_admin(submission, user)
-    if submission["status"] != "submitted":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only unprocessed submissions (status=submitted) can be deleted",
-        )
 
     if submission["channel"] == "document" and submission["stored_filename"]:
         file_path = Path(settings.upload_dir) / submission["stored_filename"]

@@ -35,22 +35,6 @@ export async function getSubmission(id) {
   return data;
 }
 
-
-export async function downloadSubmission(id, originalFilename) {
-  const response = await api.get(`/api/submissions/${id}/download`, {
-    responseType: 'blob',
-  });
-
-  const url = window.URL.createObjectURL(response.data);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = originalFilename || 'download';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  window.URL.revokeObjectURL(url);
-}
-
 export async function deleteSubmission(id) {
   await api.delete(`/api/submissions/${id}`);
 }
