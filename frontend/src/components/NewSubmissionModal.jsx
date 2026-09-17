@@ -1,4 +1,5 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X,
   Loader2,
@@ -19,6 +20,15 @@ export default function NewSubmissionModal({ isOpen, onClose, onCreated }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = '';
+      };
+    }
+  }, [isOpen]);
 
   const [file, setFile] = useState(null);
   const [docType, setDocType] = useState('');
@@ -137,13 +147,13 @@ export default function NewSubmissionModal({ isOpen, onClose, onCreated }) {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   }
 
-  return (
+  return createPortal(
     <div className="modal-overlay" onClick={handleClose}>
       <div
         className="modal-content glass-card p-0"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-200">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-200 flex-shrink-0">
           <h2 className="text-base font-semibold text-slate-900">New Submission</h2>
           <button
             onClick={handleClose}
@@ -153,7 +163,7 @@ export default function NewSubmissionModal({ isOpen, onClose, onCreated }) {
           </button>
         </div>
 
-        <div className="tab-bar px-5">
+        <div className="tab-bar px-5 flex-shrink-0">
           <button
             className={`tab-item ${activeTab === 'document' ? 'tab-active' : ''}`}
             onClick={() => { setActiveTab('document'); setError(''); setSuccess(''); }}
@@ -168,7 +178,7 @@ export default function NewSubmissionModal({ isOpen, onClose, onCreated }) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+        <form onSubmit={handleSubmit} className="p-5 space-y-4 overflow-y-auto">
           {error && (
             <div className="flex items-start gap-2 rounded-lg bg-rose-50 border border-rose-200 px-3 py-2 text-xs text-rose-700 animate-fade-in">
               <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
@@ -309,6 +319,7 @@ export default function NewSubmissionModal({ isOpen, onClose, onCreated }) {
           </button>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

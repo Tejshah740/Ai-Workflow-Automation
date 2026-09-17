@@ -15,12 +15,6 @@ services:
     ports:
       - "6379:6379"
 
-  mailhog:
-    image: mailhog/mailhog:latest
-    ports:
-      - "8025:8025"  # web UI - view sent emails at http://localhost:8025
-      - "1025:1025"  # smtp
-
   api:
     build: .
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
@@ -33,7 +27,6 @@ services:
     depends_on:
       - postgres
       - redis
-      - mailhog
 
   worker:
     build: .
@@ -45,7 +38,6 @@ services:
     depends_on:
       - postgres
       - redis
-      - mailhog
 
 volumes:
   postgres_data:

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Loader2,
   Plus,
@@ -26,6 +27,15 @@ export default function WorkflowRulesPage() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [saveSuccess, setSaveSuccess] = useState('');
+
+  useEffect(() => {
+    if (modalOpen) {
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = '';
+      };
+    }
+  }, [modalOpen]);
 
   const fetchRules = useCallback(async () => {
     setLoading(true);
@@ -238,25 +248,26 @@ export default function WorkflowRulesPage() {
         </div>
       )}
 
-      {modalOpen && (
-        <div className="modal-overlay" onClick={closeModal}>
-          <div
-            className="modal-content glass-card p-0"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-200">
-              <h2 className="text-base font-semibold text-slate-900">
-                {editingType ? 'Edit Rule' : 'New Rule'}
-              </h2>
-              <button
-                onClick={closeModal}
-                className="text-slate-400 hover:text-slate-700 transition-colors"
-              >
-                <X size={18} />
-              </button>
-            </div>
+      {modalOpen &&
+        createPortal(
+          <div className="modal-overlay" onClick={closeModal}>
+            <div
+              className="modal-content glass-card p-0"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-200 flex-shrink-0">
+                <h2 className="text-base font-semibold text-slate-900">
+                  {editingType ? 'Edit Rule' : 'New Rule'}
+                </h2>
+                <button
+                  onClick={closeModal}
+                  className="text-slate-400 hover:text-slate-700 transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
 
-            <div className="p-5 space-y-4">
+              <div className="p-5 space-y-4 overflow-y-auto">
               {saveError && (
                 <div className="flex items-start gap-2 rounded-lg bg-rose-50 border border-rose-200 px-3 py-2 text-xs text-rose-700 animate-fade-in">
                   <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
@@ -370,7 +381,8 @@ export default function WorkflowRulesPage() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

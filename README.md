@@ -13,7 +13,7 @@ An asynchronous workflow automation system built with FastAPI, PostgreSQL, Redis
 - **Authentication**: OAuth2 Password Flow with JWT (`python-jose`, `bcrypt`)
 - **Validation & Anomaly Detection**: Schema checks, `python-dateutil`, duplicate checking & outlier scoring
 - **Workflow & Routing**: Multi-level dynamic approval chains, role-based review queues, audit logs
-- **Notifications & Email**: In-app notifications database, SMTP email integration, MailHog for testing
+- **Notifications**: In-app notifications database and notification center
 - **Settings Management**: [pydantic-settings](https://docs.pydantic.dev/latest/concepts/pydantic_settings/)
 - **Containerization**: Docker & Docker Compose
 
@@ -57,7 +57,7 @@ An asynchronous workflow automation system built with FastAPI, PostgreSQL, Redis
 │   │   ├── auth_service.py       # Database queries for users & roles
 │   │   ├── classification_service.py # Keyword-based document type classifier
 │   │   ├── extraction_service.py # Regex field extractor (amount, date, invoice number)
-│   │   ├── notification_service.py   # In-app notifications & email dispatch
+│   │   ├── notification_service.py   # In-app notifications
 │   │   ├── ocr_service.py        # OCR runner for images and PDFs with confidence scores
 │   │   ├── submission_service.py # Database queries for submissions & audit logging
 │   │   ├── validation_service.py # Business rule validation per submission type
@@ -65,7 +65,6 @@ An asynchronous workflow automation system built with FastAPI, PostgreSQL, Redis
 │   └── utils/
 │       ├── __init__.py
 │       ├── deps.py               # Auth dependencies & RBAC (get_current_user, require_roles)
-│       ├── email.py              # SMTP email sender with fallback to console logging
 │       ├── file_storage.py       # Safe file upload streaming, validation, storage
 │       ├── parsing.py            # Robust amount and date parsing helpers
 │       └── security.py           # Password hashing (bcrypt) & JWT helpers
@@ -88,7 +87,7 @@ An asynchronous workflow automation system built with FastAPI, PostgreSQL, Redis
 │   └── e2e/                      # End-to-end pipeline flow tests
 ├── scripts/                      # Developer and administrative scripts
 │   └── seed_users.py             # Database user seeding script
-├── docker-compose.yml             # Docker Compose definition (PostgreSQL, Redis, API, Worker, MailHog)
+├── docker-compose.yml             # Docker Compose definition (PostgreSQL, Redis, API, Worker)
 ├── Dockerfile                    # Container specification with Tesseract & Poppler
 ├── requirements.txt              # Production Python package dependencies
 ├── requirements-dev.txt          # Development & test dependencies
@@ -132,14 +131,11 @@ Configure your environment settings in `.env`:
 | `UPLOAD_DIR` | Storage directory for uploaded documents | `"/app/uploads"` (Docker) or `"./uploads"` (Local) |
 | `MAX_UPLOAD_SIZE_BYTES` | Maximum allowed upload size (bytes) | `10485760` (10 MB) |
 | `CONFIDENCE_THRESHOLD` | Threshold for routing to `pending_approval` vs `needs_review` | `0.6` |
-| `SMTP_HOST` | SMTP server host (`mailhog` in Docker, `localhost` locally, or leave blank for console fallback) | `None` |
-| `SMTP_PORT` | SMTP server port | `1025` |
-| `SMTP_FROM` | Sender email address | `"noreply@workflow.local"` |
-| `SMTP_USE_TLS` | Enable TLS for SMTP | `False` |
+
 
 ### 3. Running with Docker Compose (Backend Services)
 
-To start all backend services (PostgreSQL, Redis, API, RQ Worker, MailHog) at once:
+To start all backend services (PostgreSQL, Redis, API, RQ Worker) at once:
 
 ```bash
 docker compose up --build
@@ -147,7 +143,6 @@ docker compose up --build
 
 - The API will be available at [http://localhost:8000](http://localhost:8000).
 - Interactive API docs are available at [http://localhost:8000/docs](http://localhost:8000/docs).
-- MailHog Web UI (for viewing captured test emails) is available at [http://localhost:8025](http://localhost:8025).
 
 ### 4. Running Backend Locally
 

@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X,
   Plus,
@@ -19,6 +20,15 @@ export default function FieldCorrectionModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = '';
+      };
+    }
+  }, [isOpen]);
 
   function resetForm() {
     setFields([{ key: '', value: '' }]);
@@ -78,13 +88,13 @@ export default function FieldCorrectionModal({
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div className="modal-overlay" onClick={handleClose}>
       <div
         className="modal-content glass-card p-0"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-200">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-200 flex-shrink-0">
           <h2 className="text-base font-semibold text-slate-900">
             Correct Fields
           </h2>
@@ -96,7 +106,7 @@ export default function FieldCorrectionModal({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+        <form onSubmit={handleSubmit} className="p-5 space-y-4 overflow-y-auto">
           <p className="text-xs text-slate-500">
             Update or add fields for submission #{submissionId}.
           </p>
@@ -161,6 +171,7 @@ export default function FieldCorrectionModal({
           </button>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

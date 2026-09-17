@@ -20,13 +20,6 @@ class Settings(BaseSettings):
     ocr_max_upscale_factor: float = 2.0
     ocr_max_dimension: int = 2000
 
-    smtp_host: str = ""
-    smtp_port: int = 587
-    smtp_user: str = ""
-    smtp_password: str = ""
-    smtp_from: str = "noreply@workflow-automation.local"
-    smtp_use_tls: bool = True
-
     # JSON array in .env if overridden, e.g. ["https://myapp.com"]
     cors_origins: list[str] = ["http://localhost:5173", "http://localhost:3000"]
 
