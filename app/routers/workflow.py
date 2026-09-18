@@ -31,6 +31,7 @@ async def upsert_rule(
     conn: asyncpg.Connection = Depends(get_db),
     _admin=Depends(require_roles("admin")),
 ):
+    submission_type = submission_type.strip().lower().replace(" ", "_")
     row = await conn.fetchrow(
         """
         INSERT INTO workflow_rules (submission_type, levels)
@@ -50,11 +51,33 @@ async def my_queue(conn: asyncpg.Connection = Depends(get_db), user=Depends(get_
     pending = []
 
     if user["role"] in ("admin", "reviewer"):
-        rows = await conn.fetch("SELECT * FROM submissions WHERE status = 'needs_review' ORDER BY created_at")
+        rows = await conn.fetch(
+            """
+            SELECT s.*, u.name AS submitter_name, e.extracted_fields
+            FROM submissions s
+            LEFT JOIN users u ON s.submitter_id = u.id
+            LEFT JOIN LATERAL (
+                SELECT extracted_fields FROM extractions WHERE submission_id = s.id ORDER BY id DESC LIMIT 1
+            ) e ON true
+            WHERE s.status = 'needs_review'
+            ORDER BY s.created_at
+            """
+        )
         needs_review = [dict(r) for r in rows]
 
-    if user["role"] in ("admin", "approver"):
-        rows = await conn.fetch("SELECT * FROM submissions WHERE status = 'pending_approval' ORDER BY created_at")
+    if user["role"] in ("admin", "reviewer", "approver"):
+        rows = await conn.fetch(
+            """
+            SELECT s.*, u.name AS submitter_name, e.extracted_fields
+            FROM submissions s
+            LEFT JOIN users u ON s.submitter_id = u.id
+            LEFT JOIN LATERAL (
+                SELECT extracted_fields FROM extractions WHERE submission_id = s.id ORDER BY id DESC LIMIT 1
+            ) e ON true
+            WHERE s.status = 'pending_approval'
+            ORDER BY s.created_at
+            """
+        )
         for row in rows:
             current = await get_current_level(conn, row["id"])
             if current and (user["role"] == "admin" or current["required_role"] == user["role"]):
@@ -74,9 +97,29 @@ async def get_workflow_status(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Submission not found")
 
     approvals = await conn.fetch(
-        "SELECT * FROM approvals WHERE submission_id = $1 ORDER BY level", submission_id
+        """
+        SELECT a.*, u.name AS decided_by_name
+        FROM approvals a
+        LEFT JOIN users u ON a.decided_by = u.id
+        WHERE a.submission_id = $1
+        ORDER BY a.level
+        """,
+        submission_id,
     )
-    return {"submission": dict(submission), "approvals": [dict(a) for a in approvals]}
+    extraction = await conn.fetchrow(
+        "SELECT * FROM extractions WHERE submission_id = $1 ORDER BY id DESC LIMIT 1",
+        submission_id,
+    )
+    validation = await conn.fetchrow(
+        "SELECT * FROM validations WHERE submission_id = $1 ORDER BY id DESC LIMIT 1",
+        submission_id,
+    )
+    return {
+        "submission": dict(submission),
+        "approvals": [dict(a) for a in approvals],
+        "extraction": dict(extraction) if extraction else None,
+        "validation": dict(validation) if validation else None,
+    }
 
 
 @router.put("/{submission_id}/fields")

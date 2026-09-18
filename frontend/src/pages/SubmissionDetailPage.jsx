@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -22,6 +22,7 @@ import {
   getValidation,
 } from '../api/submissions';
 import { useAuth } from '../context/AuthContext';
+import KeyValueDisplay from '../components/KeyValueDisplay';
 
 const TABS = [
   { key: 'ai', label: 'AI Results' },
@@ -38,6 +39,28 @@ export default function SubmissionDetailPage() {
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('ai');
   const [deleting, setDeleting] = useState(false);
+
+  const isRequest = submission?.channel === 'request';
+  const tabs = useMemo(() => {
+    if (isRequest) {
+      return [
+        { key: 'fields', label: 'Request Fields' },
+        { key: 'audit', label: 'Audit Trail' },
+      ];
+    }
+    return [
+      { key: 'ai', label: 'AI Extraction' },
+      { key: 'audit', label: 'Audit Trail' },
+    ];
+  }, [isRequest]);
+
+  useEffect(() => {
+    if (submission?.channel === 'request') {
+      setActiveTab('fields');
+    } else {
+      setActiveTab('ai');
+    }
+  }, [submission?.channel]);
 
   const [extraction, setExtraction] = useState(null);
   const [validation, setValidation] = useState(null);
@@ -94,12 +117,11 @@ export default function SubmissionDetailPage() {
 
 
   function formatDate(iso) {
+    if (!iso) return '—';
     return new Date(iso).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
     });
   }
 
@@ -201,32 +223,45 @@ export default function SubmissionDetailPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 text-xs">
-          <div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-y-4 gap-x-6 pt-4 text-xs">
+          <div className="min-w-0">
             <span className="text-slate-400 block mb-1">Status</span>
-            <span className="font-medium text-slate-800 capitalize">
+            <span className="font-medium text-slate-800 capitalize truncate block">
               {statusLabel(sub.status)}
             </span>
           </div>
-          <div>
+          <div className="min-w-0">
+            <span className="text-slate-400 block mb-1">Submitted By</span>
+            <span className="font-medium text-slate-800 flex items-center gap-1.5 min-w-0">
+              <User size={12} className="text-slate-400 flex-shrink-0" />
+              <span className="truncate" title={sub.submitter_name || (sub.submitter_id ? `User #${sub.submitter_id}` : '—')}>
+                {sub.submitter_name || (sub.submitter_id ? `User #${sub.submitter_id}` : '—')}
+              </span>
+            </span>
+          </div>
+          <div className="min-w-0">
             <span className="text-slate-400 block mb-1">Channel</span>
-            <span className="font-medium text-slate-800 capitalize flex items-center gap-1.5">
-              <Tag size={12} className="text-slate-400" />
-              {sub.channel}
+            <span className="font-medium text-slate-800 capitalize flex items-center gap-1.5 min-w-0">
+              <Tag size={12} className="text-slate-400 flex-shrink-0" />
+              <span className="truncate">{sub.channel}</span>
             </span>
           </div>
-          <div>
+          <div className="min-w-0">
             <span className="text-slate-400 block mb-1">Created At</span>
-            <span className="font-medium text-slate-800 flex items-center gap-1.5">
-              <Calendar size={12} className="text-slate-400" />
-              {formatDate(sub.created_at)}
+            <span className="font-medium text-slate-800 flex items-center gap-1.5 min-w-0">
+              <Calendar size={12} className="text-slate-400 flex-shrink-0" />
+              <span className="truncate" title={formatDate(sub.created_at)}>
+                {formatDate(sub.created_at)}
+              </span>
             </span>
           </div>
-          <div>
+          <div className="min-w-0">
             <span className="text-slate-400 block mb-1">Last Updated</span>
-            <span className="font-medium text-slate-800 flex items-center gap-1.5">
-              <Clock size={12} className="text-slate-400" />
-              {formatDate(sub.updated_at)}
+            <span className="font-medium text-slate-800 flex items-center gap-1.5 min-w-0">
+              <Clock size={12} className="text-slate-400 flex-shrink-0" />
+              <span className="truncate" title={formatDate(sub.updated_at)}>
+                {formatDate(sub.updated_at)}
+              </span>
             </span>
           </div>
         </div>
@@ -234,7 +269,7 @@ export default function SubmissionDetailPage() {
 
       <div className="glass-card overflow-hidden">
         <div className="tab-bar px-4 sm:px-6">
-          {TABS.map((tab) => (
+          {tabs.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
@@ -246,6 +281,9 @@ export default function SubmissionDetailPage() {
         </div>
 
         <div className="p-5 sm:p-6">
+          {activeTab === 'fields' && (
+            <RequestFieldsTab fields={sub.request_fields} />
+          )}
           {activeTab === 'ai' && (
             <AITab
               extraction={extraction}
@@ -264,6 +302,19 @@ export default function SubmissionDetailPage() {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+
+function RequestFieldsTab({ fields }) {
+  return (
+    <div className="space-y-4 animate-fade-in">
+      <KeyValueDisplay
+        fields={fields}
+        title="Submitted Request Fields"
+        emptyMessage="No request fields were provided."
+      />
     </div>
   );
 }
@@ -359,15 +410,14 @@ function AITab({ extraction, validation, loading, error, confidenceLevel }) {
             </div>
           )}
 
-          {extraction.extracted_fields &&
-            Object.keys(extraction.extracted_fields).length > 0 && (
-              <div className="mt-4">
-                <p className="text-xs text-slate-500 mb-1.5">Extracted Fields</p>
-                <pre className="rounded-lg bg-slate-50 border border-slate-200 p-3 text-xs text-slate-800 font-mono overflow-x-auto max-h-60 whitespace-pre-wrap">
-                  {JSON.stringify(extraction.extracted_fields, null, 2)}
-                </pre>
-              </div>
-            )}
+          {extraction.extracted_fields && (
+            <div className="mt-4">
+              <KeyValueDisplay
+                fields={extraction.extracted_fields}
+                title="Extracted Fields"
+              />
+            </div>
+          )}
         </div>
       )}
 
@@ -468,7 +518,7 @@ function AuditTab({ logs, loading, formatDate }) {
                 <div className="flex items-center gap-3 text-xs text-slate-500">
                   {log.actor_id && (
                     <span className="flex items-center gap-1">
-                      <User size={11} /> User #{log.actor_id}
+                      <User size={11} /> {log.actor_name || `User #${log.actor_id}`}
                     </span>
                   )}
                 </div>

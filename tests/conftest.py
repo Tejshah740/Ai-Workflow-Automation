@@ -1,7 +1,7 @@
 import os
 
 os.environ.setdefault(
-    "DATABASE_URL", "postgresql://workflow_user:workflow_pass@localhost:5432/workflow_db_test"
+    "DATABASE_URL", "postgresql://workflow_user:workflow_pass@localhost:5433/workflow_db_test"
 )
 os.environ.setdefault("REDIS_URL", "redis://localhost:6379/15")
 os.environ.setdefault("JWT_SECRET_KEY", "test-secret-key-do-not-use-in-production")

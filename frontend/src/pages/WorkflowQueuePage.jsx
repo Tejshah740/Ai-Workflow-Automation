@@ -29,14 +29,14 @@ export default function WorkflowQueuePage() {
   }, [fetchQueue]);
 
   const showReview = ['admin', 'reviewer'].includes(user?.role);
-  const showApproval = ['admin', 'approver'].includes(user?.role);
+  const showApproval = ['admin', 'approver', 'reviewer'].includes(user?.role);
 
   function formatDate(iso) {
+    if (!iso) return '—';
     return new Date(iso).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+      year: 'numeric',
     });
   }
 
@@ -170,9 +170,15 @@ function QueueRow({ submission, formatDate, statusLabel, actionLabel, onClick })
             </span>
           </div>
           <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5 truncate">
-            <span className="capitalize">{sub.channel}</span>
-            <span className="text-slate-300">•</span>
-            <span>{formatDate(sub.created_at)}</span>
+            <span className="capitalize flex-shrink-0">{sub.channel}</span>
+            <span className="text-slate-300 flex-shrink-0">•</span>
+            {(sub.submitter_name || sub.submitter_id) && (
+              <>
+                <span className="hidden sm:inline text-slate-700 font-medium truncate">by {sub.submitter_name || `User #${sub.submitter_id}`}</span>
+                <span className="hidden sm:inline text-slate-300">•</span>
+              </>
+            )}
+            <span className="whitespace-nowrap">{formatDate(sub.created_at)}</span>
           </div>
         </div>
       </div>

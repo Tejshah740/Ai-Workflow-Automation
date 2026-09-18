@@ -97,20 +97,12 @@ export default function SubmissionsPage() {
   }, [statusFilter, channelFilter]);
 
   function formatDate(iso) {
+    if (!iso) return '—';
     return new Date(iso).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
     });
-  }
-
-  function formatFileSize(bytes) {
-    if (!bytes) return '—';
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   }
 
   const statusLabel = (s) => s.replace(/_/g, ' ');
@@ -228,7 +220,7 @@ export default function SubmissionsPage() {
                     Status
                   </th>
                   <th className="text-left text-xs font-semibold text-slate-600 px-4 py-3 uppercase tracking-wider">
-                    Details
+                    Submitted By
                   </th>
                   <th className="text-left text-xs font-semibold text-slate-600 px-4 py-3 uppercase tracking-wider">
                     Date
@@ -257,12 +249,8 @@ export default function SubmissionsPage() {
                         {statusLabel(sub.status)}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-500 max-w-[200px] truncate">
-                      {sub.channel === 'document'
-                        ? sub.original_filename || '—'
-                        : sub.request_fields
-                        ? Object.keys(sub.request_fields).length + ' fields'
-                        : '—'}
+                    <td className="px-4 py-3 text-xs text-slate-700 font-medium whitespace-nowrap">
+                      {sub.submitter_name || (sub.submitter_id ? `User #${sub.submitter_id}` : '—')}
                     </td>
                     <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">
                       {formatDate(sub.created_at)}
@@ -317,10 +305,10 @@ export default function SubmissionsPage() {
                     <span className="capitalize">{sub.channel}</span>
                     <span>·</span>
                     <span>{formatDate(sub.created_at)}</span>
-                    {sub.channel === 'document' && sub.file_size_bytes && (
+                    {(sub.submitter_name || sub.submitter_id) && (
                       <>
                         <span>·</span>
-                        <span>{formatFileSize(sub.file_size_bytes)}</span>
+                        <span className="text-slate-700 font-medium">{sub.submitter_name || `User #${sub.submitter_id}`}</span>
                       </>
                     )}
                   </div>

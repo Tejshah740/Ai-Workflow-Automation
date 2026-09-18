@@ -13,12 +13,14 @@ class Role(str, Enum):
 
 class UserCreate(BaseModel):
     email: EmailStr
+    name: str
     password: str
 
 
 class UserOut(BaseModel):
     id: int
     email: EmailStr
+    name: str
     role: Role
     created_at: datetime
 

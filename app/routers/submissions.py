@@ -39,7 +39,7 @@ def _ensure_owner_or_admin(submission, user) -> None:
 
 @router.post("/documents", response_model=SubmissionOut, status_code=status.HTTP_201_CREATED)
 async def upload_document(
-    submission_type: str = Form("unknown"),
+    submission_type_raw: str = Form("unknown"),
     file: UploadFile = File(...),
     conn: asyncpg.Connection = Depends(get_db),
     user=Depends(get_current_user),
@@ -51,6 +51,7 @@ async def upload_document(
     except UploadValidationError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
 
+    submission_type = submission_type_raw.strip().lower().replace(" ", "_") or "unknown"
     submission = await create_document_submission(
         conn,
         submitter_id=user["id"],
@@ -71,10 +72,11 @@ async def submit_request(
     conn: asyncpg.Connection = Depends(get_db),
     user=Depends(get_current_user),
 ):
+    normalized_type = payload.submission_type.strip().lower().replace(" ", "_")
     submission = await create_request_submission(
         conn,
         submitter_id=user["id"],
-        submission_type=payload.submission_type,
+        submission_type=normalized_type,
         fields=payload.fields,
     )
     await log_audit_event(conn, submission["id"], user["id"], "submission_created", {"channel": "request"})
@@ -150,7 +152,14 @@ async def get_audit_trail(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Submission not found")
 
     rows = await conn.fetch(
-        "SELECT * FROM audit_log WHERE submission_id = $1 ORDER BY created_at", submission_id
+        """
+        SELECT al.*, u.name AS actor_name
+        FROM audit_log al
+        LEFT JOIN users u ON al.actor_id = u.id
+        WHERE al.submission_id = $1
+        ORDER BY al.created_at
+        """,
+        submission_id,
     )
     return [dict(r) for r in rows]
 

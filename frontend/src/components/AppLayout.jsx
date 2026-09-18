@@ -103,11 +103,11 @@ export default function AppLayout() {
         <div className="border-t border-slate-200 px-3 py-4 flex-shrink-0">
           <div className="flex items-center gap-3 px-3 mb-3">
             <div className="w-7 h-7 rounded-md bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700 text-xs font-semibold flex-shrink-0">
-              {user?.email?.charAt(0).toUpperCase() || '?'}
+              {(user?.name || user?.email)?.charAt(0).toUpperCase() || '?'}
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-xs font-medium text-slate-900 truncate">
-                {user?.email}
+                {user?.name || user?.email}
               </p>
               <p className="text-[11px] text-slate-500 capitalize">
                 {user?.role}
@@ -152,9 +152,9 @@ export default function AppLayout() {
             <div className="h-4 w-px bg-slate-200" />
             <div className="flex items-center gap-2.5 text-xs">
               <div className="w-6 h-6 rounded-md bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700 font-semibold text-xs">
-                {user?.email?.charAt(0).toUpperCase() || '?'}
+                {(user?.name || user?.email)?.charAt(0).toUpperCase() || '?'}
               </div>
-              <span className="font-medium text-slate-800">{user?.email}</span>
+              <span className="font-medium text-slate-800">{user?.name || user?.email}</span>
               <span className="text-[11px] capitalize text-slate-500">
                 {user?.role}
               </span>

@@ -141,12 +141,6 @@ export default function NewSubmissionModal({ isOpen, onClose, onCreated }) {
 
   if (!isOpen) return null;
 
-  function formatFileSize(bytes) {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  }
-
   return createPortal(
     <div className="modal-overlay" onClick={handleClose}>
       <div
@@ -212,7 +206,6 @@ export default function NewSubmissionModal({ isOpen, onClose, onCreated }) {
                   <div className="space-y-1.5">
                     <FileText size={22} className="text-slate-700 mx-auto" />
                     <p className="text-sm font-medium text-slate-900">{file.name}</p>
-                    <p className="text-xs text-slate-500">{formatFileSize(file.size)}</p>
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); setFile(null); }}

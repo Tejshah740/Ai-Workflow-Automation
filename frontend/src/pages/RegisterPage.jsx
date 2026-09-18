@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, Loader2 } from 'lucide-react';
+import { Mail, Lock, User, Loader2 } from 'lucide-react';
 import InputField from '../components/InputField';
 import { useAuth } from '../context/AuthContext';
 
@@ -10,6 +10,7 @@ export default function RegisterPage() {
 
   const [form, setForm] = useState({
     email: '',
+    name: '',
     password: '',
     confirmPassword: '',
   });
@@ -23,6 +24,9 @@ export default function RegisterPage() {
       errs.email = 'Email is required';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
       errs.email = 'Enter a valid email address';
+    }
+    if (!form.name.trim()) {
+      errs.name = 'Name is required';
     }
     if (!form.password) {
       errs.password = 'Password is required';
@@ -47,7 +51,7 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
-      await register(form.email, form.password);
+      await register(form.email, form.name.trim(), form.password);
       navigate('/dashboard', { replace: true });
     } catch (err) {
       const detail = err.response?.data?.detail;
@@ -100,6 +104,18 @@ export default function RegisterPage() {
               onChange={handleChange('email')}
               error={errors.email}
               autoComplete="email"
+            />
+
+            <InputField
+              id="register-name"
+              label="Full name"
+              type="text"
+              icon={User}
+              placeholder="John Doe"
+              value={form.name}
+              onChange={handleChange('name')}
+              error={errors.name}
+              autoComplete="name"
             />
 
             <InputField

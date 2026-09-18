@@ -10,11 +10,15 @@ import {
   Calendar,
   Clock,
   Tag,
+  User,
+  Edit3,
+  AlertTriangle,
 } from 'lucide-react';
 import { getWorkflowStatus, resolveReview, approveSubmission, rejectSubmission } from '../api/workflow';
 import { useAuth } from '../context/AuthContext';
 import ApprovalStepper from '../components/ApprovalStepper';
 import FieldCorrectionModal from '../components/FieldCorrectionModal';
+import KeyValueDisplay from '../components/KeyValueDisplay';
 
 export default function WorkflowDetailPage() {
   const { id } = useParams();
@@ -79,8 +83,6 @@ export default function WorkflowDetailPage() {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
     });
   }
 
@@ -113,7 +115,10 @@ export default function WorkflowDetailPage() {
 
   const sub = data.submission;
   const approvals = data.approvals || [];
+  const extraction = data.extraction || null;
+  const validation = data.validation || null;
   const currentLevel = approvals.find((a) => !a.decision) || null;
+  const currentFields = sub.channel === 'request' ? sub.request_fields : (extraction?.extracted_fields || sub.extracted_fields);
 
   const isReviewer = ['reviewer', 'admin'].includes(user?.role);
   const isApprover = ['approver', 'admin'].includes(user?.role);
@@ -166,39 +171,131 @@ export default function WorkflowDetailPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 text-xs">
-          <div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-y-4 gap-x-6 pt-4 text-xs">
+          <div className="min-w-0">
             <span className="text-slate-400 block mb-1">Workflow Status</span>
-            <span className="font-medium text-slate-800 capitalize">
+            <span className="font-medium text-slate-800 capitalize truncate block">
               {statusLabel(sub.status)}
             </span>
           </div>
-          <div>
+          <div className="min-w-0">
+            <span className="text-slate-400 block mb-1">Submitted By</span>
+            <span className="font-medium text-slate-800 flex items-center gap-1.5 min-w-0">
+              <User size={12} className="text-slate-400 flex-shrink-0" />
+              <span className="truncate" title={sub.submitter_name || (sub.submitter_id ? `User #${sub.submitter_id}` : '—')}>
+                {sub.submitter_name || (sub.submitter_id ? `User #${sub.submitter_id}` : '—')}
+              </span>
+            </span>
+          </div>
+          <div className="min-w-0">
             <span className="text-slate-400 block mb-1">Channel</span>
-            <span className="font-medium text-slate-800 capitalize flex items-center gap-1.5">
+            <span className="font-medium text-slate-800 capitalize flex items-center gap-1.5 min-w-0">
               <Tag size={12} className="text-slate-400" />
-              {sub.channel}
+              <span className="truncate">{sub.channel}</span>
             </span>
           </div>
-          <div>
+          <div className="min-w-0">
             <span className="text-slate-400 block mb-1">Submitted On</span>
-            <span className="font-medium text-slate-800 flex items-center gap-1.5">
-              <Calendar size={12} className="text-slate-400" />
-              {formatDate(sub.created_at)}
+            <span className="font-medium text-slate-800 flex items-center gap-1.5 min-w-0">
+              <Calendar size={12} className="text-slate-400 flex-shrink-0" />
+              <span className="truncate" title={formatDate(sub.created_at)}>
+                {formatDate(sub.created_at)}
+              </span>
             </span>
           </div>
-          <div>
+          <div className="min-w-0">
             <span className="text-slate-400 block mb-1">Last Updated</span>
-            <span className="font-medium text-slate-800 flex items-center gap-1.5">
-              <Clock size={12} className="text-slate-400" />
-              {formatDate(sub.updated_at)}
+            <span className="font-medium text-slate-800 flex items-center gap-1.5 min-w-0">
+              <Clock size={12} className="text-slate-400 flex-shrink-0" />
+              <span className="truncate" title={formatDate(sub.updated_at)}>
+                {formatDate(sub.updated_at)}
+              </span>
             </span>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        <div className="lg:col-span-3">
+        <div className="lg:col-span-3 space-y-6">
+          {/* Submission Data & Extractions Card */}
+          <div className="glass-card p-5">
+            <div className="flex items-center justify-between gap-2 mb-4">
+              <h2 className="text-sm font-semibold text-slate-900">
+                {sub.channel === 'request' ? 'Request Fields' : 'AI Extracted Fields'}
+              </h2>
+              {canReview && (
+                <button
+                  onClick={() => setShowFieldModal(true)}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-50 border border-slate-200 shadow-2xs transition-colors cursor-pointer"
+                >
+                  <Edit3 size={12} /> Correct Fields
+                </button>
+              )}
+            </div>
+
+            <KeyValueDisplay
+              fields={currentFields}
+              emptyMessage={
+                sub.channel === 'request'
+                  ? 'No request fields were provided.'
+                  : 'No fields have been extracted from this document yet.'
+              }
+            />
+
+            {sub.channel === 'document' && extraction && (
+              <div className="mt-4 pt-4 border-t border-slate-100 flex items-center gap-4 text-xs text-slate-500 flex-wrap">
+                {extraction.ocr_confidence != null && (
+                  <span>
+                    OCR Confidence:{' '}
+                    <strong className="text-slate-800 font-semibold">
+                      {(extraction.ocr_confidence * 100).toFixed(1)}%
+                    </strong>
+                  </span>
+                )}
+                {extraction.classification_confidence != null && (
+                  <span>
+                    Classification:{' '}
+                    <strong className="text-slate-800 font-semibold">
+                      {(extraction.classification_confidence * 100).toFixed(1)}%
+                    </strong>
+                  </span>
+                )}
+                {extraction.predicted_type && (
+                  <span>
+                    Predicted Type:{' '}
+                    <strong className="text-slate-800 capitalize font-semibold">
+                      {extraction.predicted_type}
+                    </strong>
+                  </span>
+                )}
+              </div>
+            )}
+
+            {validation && validation.issues && validation.issues.length > 0 && (
+              <div className="mt-4 pt-4 border-t border-slate-100 space-y-2">
+                <p className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                  Validation Issues
+                </p>
+                {validation.issues.map((issue, i) => (
+                  <div
+                    key={i}
+                    className={`flex items-start gap-2 rounded-lg p-2.5 text-xs border ${
+                      issue.severity === 'error'
+                        ? 'bg-rose-50 border-rose-200 text-rose-800'
+                        : 'bg-amber-50 border-amber-200 text-amber-800'
+                    }`}
+                  >
+                    <AlertTriangle size={13} className="flex-shrink-0 mt-0.5" />
+                    <div>
+                      <strong className="font-semibold capitalize">{issue.field}</strong>: {issue.message}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Approval Chain Card */}
           <div className="glass-card p-5">
             <h2 className="text-sm font-semibold text-slate-900 mb-4">
               Approval Chain
@@ -318,6 +415,7 @@ export default function WorkflowDetailPage() {
         isOpen={showFieldModal}
         onClose={() => setShowFieldModal(false)}
         submissionId={parseInt(id)}
+        initialFields={currentFields}
         onCorrected={fetchData}
       />
     </div>

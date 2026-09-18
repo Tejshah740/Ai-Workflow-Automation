@@ -28,6 +28,7 @@ class RequestSubmissionCreate(BaseModel):
 class SubmissionOut(BaseModel):
     id: int
     submitter_id: int
+    submitter_name: str | None = None
     channel: Channel
     submission_type: str
     status: SubmissionStatus
@@ -35,5 +36,6 @@ class SubmissionOut(BaseModel):
     content_type: str | None = None
     file_size_bytes: int | None = None
     request_fields: dict[str, Any] | None = None
+    extracted_fields: dict[str, Any] | None = None
     created_at: datetime
     updated_at: datetime

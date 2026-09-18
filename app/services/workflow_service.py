@@ -4,8 +4,9 @@ DEFAULT_APPROVAL_LEVELS = ["approver"]
 
 
 async def get_workflow_levels(conn: asyncpg.Connection, submission_type: str) -> list[str]:
+    normalized = submission_type.strip().lower().replace(" ", "_")
     rule = await conn.fetchrow(
-        "SELECT levels FROM workflow_rules WHERE submission_type = $1", submission_type
+        "SELECT levels FROM workflow_rules WHERE submission_type = $1", normalized
     )
     return rule["levels"] if rule else DEFAULT_APPROVAL_LEVELS
 

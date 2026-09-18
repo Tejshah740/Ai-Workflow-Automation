@@ -5,11 +5,13 @@
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     email TEXT UNIQUE NOT NULL,
+    name TEXT NOT NULL DEFAULT '',
     hashed_password TEXT NOT NULL,
     role TEXT NOT NULL DEFAULT 'submitter'
         CHECK (role IN ('admin', 'reviewer', 'approver', 'submitter')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+ALTER TABLE users ADD COLUMN IF NOT EXISTS name TEXT NOT NULL DEFAULT '';
 
 -- Module 3: intake
 CREATE TABLE IF NOT EXISTS submissions (

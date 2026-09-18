@@ -14,6 +14,7 @@ export default function FieldCorrectionModal({
   isOpen,
   onClose,
   submissionId,
+  initialFields,
   onCorrected,
 }) {
   const [fields, setFields] = useState([{ key: '', value: '' }]);
@@ -24,14 +25,49 @@ export default function FieldCorrectionModal({
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
+      let parsed = initialFields;
+      if (typeof parsed === 'string') {
+        try {
+          parsed = JSON.parse(parsed);
+        } catch {
+          parsed = null;
+        }
+      }
+      if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) {
+        setFields(
+          Object.entries(parsed).map(([key, value]) => ({
+            key,
+            value: value !== null && value !== undefined ? String(value) : '',
+          }))
+        );
+      } else {
+        setFields([{ key: '', value: '' }]);
+      }
       return () => {
         document.body.style.overflow = '';
       };
     }
-  }, [isOpen]);
+  }, [isOpen, initialFields]);
 
   function resetForm() {
-    setFields([{ key: '', value: '' }]);
+    let parsed = initialFields;
+    if (typeof parsed === 'string') {
+      try {
+        parsed = JSON.parse(parsed);
+      } catch {
+        parsed = null;
+      }
+    }
+    if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) {
+      setFields(
+        Object.entries(parsed).map(([key, value]) => ({
+          key,
+          value: value !== null && value !== undefined ? String(value) : '',
+        }))
+      );
+    } else {
+      setFields([{ key: '', value: '' }]);
+    }
     setError('');
     setSuccess('');
   }

@@ -21,7 +21,7 @@ async def register(payload: UserCreate, conn: asyncpg.Connection = Depends(get_d
     existing = await get_user_by_email(conn, payload.email)
     if existing is not None:
         raise HTTPException(status_code=400, detail="Email already registered")
-    user = await create_user(conn, payload.email, payload.password)
+    user = await create_user(conn, payload.email, payload.name, payload.password)
     return dict(user)
 
 

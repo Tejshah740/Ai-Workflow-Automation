@@ -141,12 +141,12 @@ async def approvals_report(
     )
     by_approver = await conn.fetch(
         """
-        SELECT u.email, a.decision, COUNT(*) AS count
+        SELECT COALESCE(NULLIF(u.name, ''), u.email) AS approver_name, u.email, a.decision, COUNT(*) AS count
         FROM approvals a
         JOIN users u ON u.id = a.decided_by
         WHERE a.decision IS NOT NULL
-        GROUP BY u.email, a.decision
-        ORDER BY u.email
+        GROUP BY u.name, u.email, a.decision
+        ORDER BY u.name, u.email
         """
     )
     return {

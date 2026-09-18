@@ -27,8 +27,7 @@ export default function ApprovalStepper({ approvals, currentLevel }) {
     return new Date(iso).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+      year: 'numeric',
     });
   }
 
@@ -72,9 +71,9 @@ export default function ApprovalStepper({ approvals, currentLevel }) {
 
             {approval.decision && (
               <div className="mt-2 space-y-1 text-xs">
-                {approval.decided_by && (
+                {(approval.decided_by_name || approval.decided_by) && (
                   <p className="text-slate-500">
-                    Decided by User #{approval.decided_by}
+                    Decided by {approval.decided_by_name || `User #${approval.decided_by}`}
                   </p>
                 )}
                 {approval.comment && (

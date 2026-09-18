@@ -72,8 +72,8 @@ export function AuthProvider({ children }) {
     return user;
   }, []);
 
-  const register = useCallback(async (email, password) => {
-    await authApi.register(email, password);
+  const register = useCallback(async (email, name, password) => {
+    await authApi.register(email, name, password);
     return login(email, password);
   }, [login]);
 
